@@ -1,6 +1,6 @@
 # opencode-nexos-models-config
 
-CLI tool that fetches available models from the [Nexos AI](https://nexos.ai) API and generates an [opencode](https://opencode.ai) configuration file with all supported models.
+Simple CLI companion tool for the [nexos-provider](https://github.com/crazy-goat/nexos-provider) [opencode](https://opencode.ai) plugin. It fetches available models from the [Nexos AI](https://nexos.ai) API and generates an opencode configuration file.
 
 ## Requirements
 
@@ -8,17 +8,10 @@ CLI tool that fetches available models from the [Nexos AI](https://nexos.ai) API
 - [opencode](https://opencode.ai) installed globally (`npm install -g opencode`)
 - `NEXOS_API_KEY` environment variable set with your Nexos AI API key
 
-## Installation
-
-```bash
-npm install -g opencode-nexos-models-config
-```
-
 ## Usage
 
 ```bash
-export NEXOS_API_KEY="your-api-key"
-opencode-nexos-models-config
+NEXOS_API_KEY="your-api-key" npx opencode-nexos-models-config
 ```
 
 The tool will:
