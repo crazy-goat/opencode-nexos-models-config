@@ -1,0 +1,21 @@
+{
+  "name": "opencode-nexos-models-config",
+  "version": "1.1.0",
+  "description": "List available models on nexos.ai",
+  "type": "module",
+  "bin": "./index.mjs",
+  "files": [
+    "index.mjs"
+  ],
+  "keywords": [
+    "nexos",
+    "ai",
+    "models",
+    "opencode"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crazy-goat/opencode-nexos-models-config.git"
+  }
+}
