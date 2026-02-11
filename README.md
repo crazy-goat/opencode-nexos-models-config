@@ -44,6 +44,7 @@ This opens an interactive prompt for each agent where you can search and select 
 | Flag | Description |
 |---|---|
 | `--select-agents` | Interactively select models for agents defined in config |
+| `--output`, `-o` | Write config to a custom file path instead of default |
 
 ## License
 

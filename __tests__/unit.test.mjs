@@ -121,5 +121,20 @@ describe("Helper Functions", () => {
       const args = parseCliArgs(["node", "index.mjs", "--unknown-flag"]);
       expect(args["select-agents"]).toBe(false);
     });
+
+    test("should return output as undefined by default", () => {
+      const args = parseCliArgs(["node", "index.mjs"]);
+      expect(args.output).toBeUndefined();
+    });
+
+    test("should return output path when --output flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "--output", "/custom/path.json"]);
+      expect(args.output).toBe("/custom/path.json");
+    });
+
+    test("should return output path when -o flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "-o", "/custom/path.json"]);
+      expect(args.output).toBe("/custom/path.json");
+    });
   });
 });

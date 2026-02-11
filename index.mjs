@@ -178,6 +178,7 @@ export function parseCliArgs(argv) {
     args: argv.slice(2),
     options: {
       "select-agents": { type: "boolean", default: false },
+      "output": { type: "string", short: "o" },
     },
     strict: false,
   });
@@ -374,7 +375,8 @@ export async function main() {
     console.error(`  - ${name}`);
   }
 
-  const configPath = join(homedir(), ".config", "opencode", "opencode.json");
+  const cliArgs = parseCliArgs(process.argv);
+  const configPath = cliArgs.output || join(homedir(), ".config", "opencode", "opencode.json");
 
   let config = {};
   try {
@@ -413,7 +415,6 @@ export async function main() {
   console.error(`\nGenerated configuration for ${Object.keys(models).length} models`);
   console.error(`Config written to: ${configPath}`);
 
-  const cliArgs = parseCliArgs(process.argv);
   if (cliArgs["select-agents"]) {
     const updated = await selectAgentModels(config, modelNames, "nexos-ai");
     if (updated) {

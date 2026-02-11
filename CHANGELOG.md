@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0] - 2026-02-11
+
+### Added
+
+- `--output` / `-o` flag to write config to a custom file path
+
 ## [1.4.0] - 2026-02-11
 
 ### Changed
