@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0] - 2026-02-11
+
+### Added
+
+- `--select-agents` flag — interactive model selection for agents defined in `opencode.json`
+  - Uses `@inquirer/prompts` search component with arrow-key navigation and type-to-filter
+  - Shows current model and description for each agent
+  - Only runs when explicitly passed; default behavior is unchanged
+- Model limit override for `codestral-2508` (context: 256k, output: 16k)
+
+### Changed
+
+- Replaced readline-based agent model prompt with interactive `@inquirer/prompts` UI
+
 ## [1.2.0] - 2026-02-09
 
 ### Improved
