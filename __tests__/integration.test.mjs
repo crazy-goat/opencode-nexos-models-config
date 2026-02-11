@@ -266,30 +266,29 @@ describe("Integration Tests", () => {
   });
 
   describe("selectAgentModels", () => {
-    test("should skip when no agents defined", async () => {
-      const config = {};
-      await selectAgentModels(config, ["Model A"], "nexos-ai");
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("No agents defined")
-      );
-    });
+    test("should skip when no agents selected from checkbox", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(async () => []),
+        search: jest.fn(),
+      };
 
-    test("should skip when agent is empty object", async () => {
-      const config = { agent: {} };
-      await selectAgentModels(config, ["Model A"], "nexos-ai");
+      const config = { agent: { build: { model: "nexos-ai/Old Model" } } };
+      const result = await selectAgentModels(config, ["Model A"], "nexos-ai", mockPrompts);
+      expect(result).toBe(false);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("No agents defined")
+        expect.stringContaining("No agents selected")
       );
     });
 
     test("should update agent models via inquirer search", async () => {
-      const mockCallCounter = { count: 0 };
-      jest.mock("@inquirer/prompts", () => ({
+      const mockSearchCounter = { count: 0 };
+      const mockPrompts = {
+        checkbox: jest.fn(async () => ["build", "plan"]),
         search: jest.fn(async () => {
-          mockCallCounter.count++;
-          return mockCallCounter.count === 1 ? "nexos-ai/Claude Opus 4.6" : "nexos-ai/Gemini 2.5 Flash";
+          mockSearchCounter.count++;
+          return mockSearchCounter.count === 1 ? "nexos-ai/Claude Opus 4.6" : "nexos-ai/Gemini 2.5 Flash";
         }),
-      }));
+      };
 
       const config = {
         agent: {
@@ -298,10 +297,131 @@ describe("Integration Tests", () => {
         },
       };
 
-      await selectAgentModels(config, ["Claude Opus 4.6", "Gemini 2.5 Flash"], "nexos-ai");
+      const result = await selectAgentModels(config, ["Claude Opus 4.6", "Gemini 2.5 Flash"], "nexos-ai", mockPrompts);
 
+      expect(result).toBe(true);
       expect(config.agent.build.model).toBe("nexos-ai/Claude Opus 4.6");
       expect(config.agent.plan.model).toBe("nexos-ai/Gemini 2.5 Flash");
+    });
+
+    test("should create new agents if not existing", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(async () => ["build"]),
+        search: jest.fn(async () => "nexos-ai/GPT 5"),
+      };
+
+      const config = {};
+      const result = await selectAgentModels(config, ["GPT 5"], "nexos-ai", mockPrompts);
+
+      expect(result).toBe(true);
+      expect(config.agent.build.model).toBe("nexos-ai/GPT 5");
+    });
+
+    test("should add all default agents when no agents exist", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(),
+        search: jest.fn(async () => "nexos-ai/Claude Opus 4.5"),
+      };
+
+      const config = { agent: {} };
+      const result = await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts);
+
+      expect(result).toBe(true);
+      expect(mockPrompts.checkbox).not.toHaveBeenCalled();
+      expect(config.agent.build).toBeDefined();
+      expect(config.agent["build-fast"]).toBeDefined();
+      expect(config.agent["build-heavy"]).toBeDefined();
+      expect(config.agent.plan).toBeDefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("No agents configured, adding all defaults"));
+    });
+
+    test("should apply default permissions for plan agent", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(),
+        search: jest.fn(async () => "nexos-ai/Claude Sonnet 4.5"),
+      };
+
+      const config = { agent: {} };
+      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts);
+
+      expect(config.agent.plan.permission).toBeDefined();
+      expect(config.agent.plan.permission.edit).toBe("deny");
+      expect(config.agent.plan.permission.bash).toBe("allow");
+      expect(config.agent.plan.permission.read).toBe("allow");
+      expect(config.agent.plan.description).toBe("Read-only planning agent with bash access");
+    });
+
+    test("should not overwrite existing agent permissions", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(async () => ["plan"]),
+        search: jest.fn(async () => "nexos-ai/Claude Sonnet 4.5"),
+      };
+
+      const config = {
+        agent: {
+          plan: {
+            model: "nexos-ai/Old Model",
+            permission: { edit: "allow", bash: "deny" },
+            description: "Custom description",
+          },
+        },
+      };
+      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts);
+
+      expect(config.agent.plan.permission.edit).toBe("allow");
+      expect(config.agent.plan.permission.bash).toBe("deny");
+      expect(config.agent.plan.description).toBe("Custom description");
+    });
+
+    test("should include existing model in choices even if not in nexos list", async () => {
+      const mockPrompts = {
+        checkbox: jest.fn(async () => ["build"]),
+        search: jest.fn(async ({ source }) => {
+          const choices = source("");
+          return choices[0].value;
+        }),
+      };
+
+      const config = {
+        agent: {
+          build: { model: "other-provider/Custom Model" },
+        },
+      };
+      await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts);
+
+      expect(mockPrompts.search).toHaveBeenCalled();
+      const searchCall = mockPrompts.search.mock.calls[0][0];
+      const choices = searchCall.source("");
+      expect(choices.some((c) => c.value === "other-provider/Custom Model")).toBe(true);
+    });
+  });
+
+  describe("embedding models filtering", () => {
+    test("should skip embedding models", async () => {
+      const mockModelsData = [
+        { id: "gpt-4o", name: "GPT 4o", context_window: 128000, max_output_tokens: 16384 },
+        { id: "text-embedding-3-large", name: "text-embedding-3-large", context_window: 128000, max_output_tokens: 64000 },
+        { id: "text-embedding-3-small", name: "text-embedding-3-small", context_window: 128000, max_output_tokens: 64000 },
+      ];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: mockModelsData }),
+      });
+      execSync.mockReturnValueOnce("some/path/to/opencode");
+      readFile.mockRejectedValueOnce(new Error("File not found"));
+      mkdir.mockResolvedValueOnce(undefined);
+      writeFile.mockResolvedValueOnce(undefined);
+
+      await main();
+
+      const writeCall = writeFile.mock.calls[0];
+      const writtenConfig = JSON.parse(writeCall[1]);
+      const modelNames = Object.keys(writtenConfig.provider["nexos-ai"].models);
+
+      expect(modelNames).toContain("GPT 4o");
+      expect(modelNames).not.toContain("text-embedding-3-large");
+      expect(modelNames).not.toContain("text-embedding-3-small");
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Models to be added (1):"));
     });
   });
 });

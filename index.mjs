@@ -184,25 +184,85 @@ export function parseCliArgs(argv) {
   return values;
 }
 
-export async function selectAgentModels(config, modelNames, providerName) {
-  const agents = config.agent;
-  if (!agents || typeof agents !== "object" || Object.keys(agents).length === 0) {
-    console.error("\nNo agents defined in config, skipping agent model selection.");
-    return;
+const DEFAULT_AGENTS = ["build", "build-fast", "build-heavy", "plan"];
+
+const AGENT_DEFAULTS = {
+  plan: {
+    description: "Read-only planning agent with bash access",
+    permission: {
+      edit: "deny",
+      bash: "allow",
+      read: "allow",
+      glob: "allow",
+      grep: "allow",
+      task: "allow",
+      webfetch: "allow",
+    },
+  },
+};
+
+export async function selectAgentModels(config, modelNames, providerName, prompts = null) {
+  const { search, checkbox } = prompts || await import("@inquirer/prompts");
+
+  if (!config.agent || typeof config.agent !== "object") {
+    config.agent = {};
   }
 
-  const { search } = await import("@inquirer/prompts");
+  const existingAgents = Object.keys(config.agent);
+  const allAgentNames = [...new Set([...DEFAULT_AGENTS, ...existingAgents])];
+
+  let selectedAgents;
+  if (existingAgents.length === 0) {
+    selectedAgents = [...DEFAULT_AGENTS];
+    console.error(`\nNo agents configured, adding all defaults: ${selectedAgents.join(", ")}`);
+  } else {
+    selectedAgents = await checkbox({
+      message: "Select agents to configure:",
+      choices: allAgentNames.map((name) => ({
+        name: name,
+        value: name,
+        checked: existingAgents.includes(name),
+      })),
+    });
+
+    if (selectedAgents.length === 0) {
+      console.error("\nNo agents selected, skipping agent model selection.");
+      return false;
+    }
+  }
 
   const allChoices = modelNames.map((name) => ({
     name: name,
     value: `${providerName}/${name}`,
   }));
 
+  for (const agentName of selectedAgents) {
+    const agentConfig = config.agent[agentName];
+    if (agentConfig?.model && !allChoices.some((c) => c.value === agentConfig.model)) {
+      allChoices.unshift({
+        name: agentConfig.model,
+        value: agentConfig.model,
+      });
+    }
+  }
+
   console.error("\n\x1b[1m--- Agent Model Selection ---\x1b[0m\n");
   console.error("Use \x1b[36m\u2191\u2193\x1b[0m to navigate, \x1b[36mtype\x1b[0m to filter, \x1b[36mEnter\x1b[0m to select\n");
 
-  for (const [agentName, agentConfig] of Object.entries(agents)) {
-    if (typeof agentConfig !== "object") continue;
+  for (const agentName of selectedAgents) {
+    if (!config.agent[agentName]) {
+      config.agent[agentName] = {};
+    }
+    const agentConfig = config.agent[agentName];
+    if (AGENT_DEFAULTS[agentName]) {
+      const defaults = AGENT_DEFAULTS[agentName];
+      if (defaults.description && !agentConfig.description) {
+        agentConfig.description = defaults.description;
+      }
+      if (defaults.permission && !agentConfig.permission) {
+        agentConfig.permission = defaults.permission;
+      }
+    }
     const currentModel = agentConfig.model || "(not set)";
     const desc = agentConfig.description ? ` - ${agentConfig.description}` : "";
 
@@ -219,6 +279,7 @@ export async function selectAgentModels(config, modelNames, providerName) {
 
     config.agent[agentName].model = selected;
   }
+  return true;
 }
 
 export async function main() {
@@ -281,6 +342,8 @@ export async function main() {
     if ((model.name || "").includes("(No PII)")) continue;
 
     const displayName = getDisplayName(model);
+
+    if (displayName.toLowerCase().includes("embedding")) continue;
 
     if (isSkippedModel(displayName)) {
       skippedModels.push(displayName);
@@ -352,9 +415,11 @@ export async function main() {
 
   const cliArgs = parseCliArgs(process.argv);
   if (cliArgs["select-agents"]) {
-    await selectAgentModels(config, modelNames, "nexos-ai");
-    await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
-    console.error("Agent configuration updated.");
+    const updated = await selectAgentModels(config, modelNames, "nexos-ai");
+    if (updated) {
+      await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+      console.error("Agent configuration updated.");
+    }
   }
 }
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0] - 2026-02-11
+
+### Changed
+
+- Default agents changed to `build`, `build-fast`, `build-heavy`, `plan` (removed `code`)
+- When no agents are configured, all default agents are added automatically without prompting
+- Existing agent models not in Nexos list are now included in selection choices
+
+### Added
+
+- `plan` agent with read-only permissions (edit denied, bash/read/glob/grep/task/webfetch allowed)
+- Default description and permissions for `plan` agent
+
+### Removed
+
+- Embedding models are now filtered out (not usable with opencode)
+
 ## [1.3.0] - 2026-02-11
 
 ### Added

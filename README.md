@@ -22,7 +22,7 @@ The tool will:
 
 ### Agent model selection
 
-If you have agents defined in your `opencode.json` (e.g. `build`, `build-fast`, `plan`), you can interactively assign models to them:
+If you have agents defined in your `opencode.json` (e.g. `build`, `build-fast`, `build-heavy`, `plan`), you can interactively assign models to them:
 
 ```bash
 NEXOS_API_KEY="your-api-key" npx opencode-nexos-models-config --select-agents
