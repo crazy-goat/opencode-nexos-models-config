@@ -32,12 +32,16 @@ This opens an interactive prompt for each agent where you can search and select 
 
 ## Configuration
 
-| Environment Variable | Description | Default |
+### Environment Variables
+
+| Variable | Description | Default |
 |---|---|---|
 | `NEXOS_API_KEY` | Your Nexos AI API key (required) | - |
 | `NEXOS_BASE_URL` | Custom API base URL | `https://api.nexos.ai/v1` |
 
-| CLI Flag | Description |
+### CLI Flags
+
+| Flag | Description |
 |---|---|
 | `--select-agents` | Interactively select models for agents defined in config |
 
