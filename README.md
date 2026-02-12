@@ -100,12 +100,6 @@ If you have agents defined in your `opencode.json` (e.g. `build`, `build-fast`, 
 opencode-nexos-models-config --select-agents
 ```
 
-Or using the short option:
-
-```bash
-opencode-nexos-models-config -s
-```
-
 This opens an interactive prompt for each agent where you can search and select a model using arrow keys and type-to-filter.
 
 ## Configuration
