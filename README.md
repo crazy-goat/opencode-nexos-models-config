@@ -8,10 +8,82 @@ Simple CLI companion tool for the [nexos-provider](https://github.com/crazy-goat
 - [opencode](https://opencode.ai) installed globally (`npm install -g opencode`)
 - `NEXOS_API_KEY` environment variable set with your Nexos AI API key
 
-## Usage
+## Installation
+
+### Global installation (recommended)
 
 ```bash
-NEXOS_API_KEY="your-api-key" npx opencode-nexos-models-config
+npm install -g opencode-nexos-models-config
+```
+
+### Per-user installation (without root/sudo)
+
+#### Linux
+
+Add to `~/.npmrc`:
+
+```
+prefix=~/.npm-global
+```
+
+Add to `~/.bashrc`:
+
+```bash
+export PATH="$HOME/.npm-global/bin:$PATH"
+```
+
+Then reload shell and install:
+
+```bash
+source ~/.bashrc
+npm install -g opencode-nexos-models-config
+```
+
+#### macOS
+
+Add to `~/.npmrc`:
+
+```
+prefix=~/.npm-global
+```
+
+Add to `~/.zshrc`:
+
+```bash
+export PATH="$HOME/.npm-global/bin:$PATH"
+```
+
+Then reload shell and install:
+
+```bash
+source ~/.zshrc
+npm install -g opencode-nexos-models-config
+```
+
+### Updating
+
+```bash
+npm update -g opencode-nexos-models-config
+```
+
+Or to force the latest version:
+
+```bash
+npm install -g opencode-nexos-models-config@latest
+```
+
+## Usage
+
+After global installation:
+
+```bash
+opencode-nexos-models-config
+```
+
+Or without installation (using npx):
+
+```bash
+npx opencode-nexos-models-config
 ```
 
 The tool will:
@@ -25,7 +97,13 @@ The tool will:
 If you have agents defined in your `opencode.json` (e.g. `build`, `build-fast`, `build-heavy`, `plan`), you can interactively assign models to them:
 
 ```bash
-NEXOS_API_KEY="your-api-key" npx opencode-nexos-models-config --select-agents
+opencode-nexos-models-config --select-agents
+```
+
+Or using the short option:
+
+```bash
+opencode-nexos-models-config -s
 ```
 
 This opens an interactive prompt for each agent where you can search and select a model using arrow keys and type-to-filter.
@@ -43,7 +121,9 @@ This opens an interactive prompt for each agent where you can search and select 
 
 | Flag | Description |
 |---|---|
-| `--select-agents` | Interactively select models for agents defined in config |
+| `--help`, `-h` | Show help message |
+| `--version`, `-v` | Show version number |
+| `--select-agents`, `-s` | Interactively select models for agents defined in config |
 | `--output`, `-o` | Write config to a custom file path instead of default |
 
 ## License

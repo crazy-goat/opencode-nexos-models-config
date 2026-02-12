@@ -177,12 +177,38 @@ export function parseCliArgs(argv) {
   const { values } = parseArgs({
     args: argv.slice(2),
     options: {
-      "select-agents": { type: "boolean", default: false },
+      "select-agents": { type: "boolean", short: "s", default: false },
       "output": { type: "string", short: "o" },
+      "help": { type: "boolean", short: "h", default: false },
+      "version": { type: "boolean", short: "v", default: false },
     },
     strict: false,
   });
   return values;
+}
+
+export function showHelp() {
+  console.log(`Usage: opencode-nexos-models-config [options]
+
+Fetch available models from Nexos AI API and generate opencode configuration.
+
+Options:
+  -h, --help           Show this help message
+  -v, --version        Show version number
+  -o, --output <path>  Write config to custom file path
+  -s, --select-agents  Interactively select models for agents
+
+Environment variables:
+  NEXOS_API_KEY        Your Nexos AI API key (required)
+  NEXOS_BASE_URL       Custom API base URL (default: https://api.nexos.ai/v1)
+`);
+}
+
+export async function showVersion() {
+  const packageJson = JSON.parse(
+    await readFile(new URL("./package.json", import.meta.url), "utf-8")
+  );
+  console.log(packageJson.version);
 }
 
 const DEFAULT_AGENTS = ["build", "build-fast", "build-heavy", "plan"];
@@ -284,6 +310,18 @@ export async function selectAgentModels(config, modelNames, providerName, prompt
 }
 
 export async function main() {
+  const cliArgs = parseCliArgs(process.argv);
+
+  if (cliArgs.help) {
+    showHelp();
+    process.exit(0);
+  }
+
+  if (cliArgs.version) {
+    await showVersion();
+    process.exit(0);
+  }
+
   const apiBaseURL = process.env.NEXOS_BASE_URL || "https://api.nexos.ai/v1";
   const apiKey = process.env.NEXOS_API_KEY;
 
@@ -375,7 +413,6 @@ export async function main() {
     console.error(`  - ${name}`);
   }
 
-  const cliArgs = parseCliArgs(process.argv);
   const configPath = cliArgs.output || join(homedir(), ".config", "opencode", "opencode.json");
 
   let config = {};

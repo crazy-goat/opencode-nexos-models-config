@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.0] - 2026-02-12
+
+### Added
+
+- `--help` / `-h` flag to show usage information
+- `--version` / `-v` flag to show version number
+- `-s` as short option for `--select-agents`
+
+### Improved
+
+- Documentation: Added installation instructions for global and per-user installations (Linux/macOS)
+- Documentation: Added update instructions
+- Help message includes all available options and environment variables
+
 ## [1.5.0] - 2026-02-11
 
 ### Added
