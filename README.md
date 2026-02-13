@@ -102,6 +102,21 @@ opencode-nexos-models-config --select-agents
 
 This opens an interactive prompt for each agent where you can search and select a model using arrow keys and type-to-filter.
 
+### Model pricing information
+
+The tool automatically includes pricing information for available models in the generated configuration. Pricing includes:
+
+- **Input cost**: Price per million input tokens
+- **Output cost**: Price per million output tokens
+- **Cache read**: Price per million cached tokens read (if supported)
+- **Cache write**: Price per million tokens written to cache (if supported)
+
+Custom pricing from your existing configuration is always preserved and takes priority over default pricing. This allows you to:
+
+- Override pricing for specific models
+- Add custom cost models not included in defaults
+- Keep your pricing configuration synchronized across updates
+
 ## Configuration
 
 ### Environment Variables

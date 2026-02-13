@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.7.0] - 2026-02-13
+
+### Added
+
+- Model cost configuration support with hardcoded defaults for Claude, GPT, and Gemini models
+  - Supports input, output, cache_read, and cache_write pricing tiers
+  - Automatically includes existing model costs from config file (user's custom values take priority)
+- `getExistingModelCosts()` function to read and preserve existing model costs from opencode.json
+- `getModelCost()` function to retrieve model costs with fallback to hardcoded defaults
+- Cost information is now included in generated model configurations
+
 ## [1.6.0] - 2026-02-12
 
 ### Added

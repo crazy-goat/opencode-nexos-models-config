@@ -28,6 +28,103 @@ const modelLimitsOverrides = {
   "codestral-2508":           { context: 256000, output: 16384 },
 };
 
+const modelCostsDefaults = {
+  "anthropic.claude-haiku-4-5@20251001": {
+    input: 1,
+    output: 5,
+    cache_read: 0.1,
+    cache_write: 1.25,
+  },
+  "anthropic.claude-sonnet-4-5@20250929 (aoxy-analytics europe-west1)": {
+    input: 3,
+    output: 15,
+    cache_read: 0.3,
+    cache_write: 3.75,
+  },
+  "anthropic.claude-sonnet-4-5@20250929 (oxy-analytics us-east5)": {
+    input: 3,
+    output: 15,
+    cache_read: 0.3,
+    cache_write: 3.75,
+  },
+  "Claude Opus 4.5": {
+    input: 5,
+    output: 25,
+    cache_read: 0.5,
+    cache_write: 6.25,
+  },
+  "Claude Opus 4.6": {
+    input: 5,
+    output: 25,
+    cache_read: 0.5,
+    cache_write: 6.25,
+  },
+  "Claude Sonnet 4.5": {
+    input: 3,
+    output: 15,
+    cache_read: 0.3,
+    cache_write: 3.75,
+  },
+  "claude-sonnet-4-20250514": {
+    input: 3,
+    output: 15,
+    cache_read: 0.3,
+    cache_write: 3.75,
+  },
+  // OpenAI models
+  "GPT 5.2": {
+    input: 1.75,
+    output: 14.0,
+    cache_read: 0.175,
+  },
+  "GPT 5": {
+    input: 1.25,
+    output: 10.0,
+    cache_read: 0.125,
+  },
+  "gpt-5-mini-2025-08-07": {
+    input: 0.25,
+    output: 2.0,
+    cache_read: 0.025,
+  },
+  "gpt-5-nano-2025-08-07": {
+    input: 0.05,
+    output: 0.4,
+    cache_read: 0.005,
+  },
+  "GPT 5.2 Chat": {
+    input: 1.75,
+    output: 14.0,
+    cache_read: 0.175,
+  },
+  "GPT 4.1": {
+    input: 2.0,
+    output: 8.0,
+    cache_read: 0.5,
+  },
+  "gpt-4.1-mini-2025-04-14": {
+    input: 0.4,
+    output: 1.6,
+    cache_read: 0.1,
+  },
+  "GPT 4o": {
+    input: 2.5,
+    output: 10.0,
+    cache_read: 1.25,
+  },
+  // Google Gemini models
+  "Gemini 2.5 Pro": {
+    input: 1.25,
+    output: 10.0,
+    cache_read: 0.125,
+  },
+  "Gemini 2.5 Flash": {
+    input: 0.3,
+    output: 2.5,
+    cache_read: 0.03,
+  },
+};
+
 const skippedModelPrefixes = ["Gemini 3"];
 
 const claudeVariants = {
@@ -309,6 +406,40 @@ export async function selectAgentModels(config, modelNames, providerName, prompt
   return true;
 }
 
+export async function getExistingModelCosts() {
+  const configPath = join(homedir(), ".config", "opencode", "opencode.json");
+  try {
+    const raw = await readFile(configPath, "utf-8");
+    const config = JSON.parse(raw);
+    const existingProvider = asObject(config.provider?.["nexos-ai"]);
+    const existingModels = asObject(existingProvider?.models);
+    
+    if (!existingModels) return {};
+    
+    const costs = {};
+    for (const [modelName, modelConfig] of Object.entries(existingModels)) {
+      if (modelConfig?.cost) {
+        costs[modelName] = modelConfig.cost;
+      }
+    }
+    return costs;
+  } catch {
+    return {};
+  }
+}
+
+export function getModelCost(displayName, existingCosts) {
+  // Always prefer existing costs from config (user's custom values)
+  if (existingCosts[displayName]) {
+    return existingCosts[displayName];
+  }
+  // Fall back to hardcoded defaults if available
+  if (modelCostsDefaults[displayName]) {
+    return modelCostsDefaults[displayName];
+  }
+  return undefined;
+}
+
 export async function main() {
   const cliArgs = parseCliArgs(process.argv);
 
@@ -374,6 +505,9 @@ export async function main() {
     process.exit(0);
   }
 
+  // Load existing model costs
+  const existingCosts = await getExistingModelCosts();
+
   const models = {};
   const skippedModels = [];
 
@@ -392,12 +526,14 @@ export async function main() {
     const limit = getModelLimit(model);
     const variants = getModelVariants(displayName);
     const options = getModelOptions(displayName);
+    const cost = getModelCost(displayName, existingCosts);
 
     models[displayName] = {
       name: displayName,
       limit,
       ...(options ? { options } : {}),
       ...(variants ? { variants } : {}),
+      ...(cost ? { cost } : {}),
     };
   }
 
