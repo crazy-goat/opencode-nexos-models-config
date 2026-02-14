@@ -1,12 +1,11 @@
 import {
-  clone,
   uniqueStrings,
   getDisplayName,
   getContextWindow,
   getMaxOutputTokens,
-  isSkippedModel,
   parseCliArgs,
 } from "../index.mjs";
+import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, isModelSupported, SUPPORTED_MODELS } from "../models.config.mjs";
 
 describe("Helper Functions", () => {
   describe("clone", () => {
@@ -106,6 +105,124 @@ describe("Helper Functions", () => {
     });
   });
 
+  describe("Model Configuration", () => {
+    describe("getModelConfig", () => {
+      test("should return config for supported models", () => {
+        const config = getModelConfig("Claude Opus 4.5");
+        expect(config).toBeDefined();
+        expect(config.limit).toBeDefined();
+        expect(config.cost).toBeDefined();
+      });
+
+      test("should return null for unsupported models", () => {
+        const config = getModelConfig("Unknown Model");
+        expect(config).toBeNull();
+      });
+    });
+
+    describe("isModelSupported", () => {
+      test("should return true for supported models", () => {
+        expect(isModelSupported("Claude Opus 4.5")).toBe(true);
+        expect(isModelSupported("GPT 5.2")).toBe(true);
+        expect(isModelSupported("Gemini 2.5 Pro")).toBe(true);
+      });
+
+      test("should return false for unsupported models", () => {
+        expect(isModelSupported("Unknown Model")).toBe(false);
+      });
+    });
+
+    describe("getModelLimit", () => {
+      test("should return limits from config for supported models", () => {
+        const limit = getModelLimit("Claude Opus 4.5");
+        expect(limit).toEqual({ context: 200000, output: 64000 });
+      });
+
+      test("should return limits from API model when provided", () => {
+        const apiModel = { context_window: 500000, max_output_tokens: 100000 };
+        const limit = getModelLimit("Unknown Model", apiModel);
+        expect(limit).toEqual({ context: 500000, output: 100000 });
+      });
+
+      test("should return defaults for unknown models without API data", () => {
+        const limit = getModelLimit("Unknown Model");
+        expect(limit).toEqual({ context: 128000, output: 64000 });
+      });
+    });
+
+    describe("getModelCost", () => {
+      test("should return cost from config for supported models", () => {
+        const cost = getModelCost("Claude Opus 4.5");
+        expect(cost).toEqual({ input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 });
+      });
+
+      test("should prefer existing costs over defaults", () => {
+        const existingCosts = { "Claude Opus 4.5": { input: 10, output: 50 } };
+        const cost = getModelCost("Claude Opus 4.5", existingCosts);
+        expect(cost).toEqual({ input: 10, output: 50 });
+      });
+
+      test("should return undefined for unsupported models", () => {
+        const cost = getModelCost("Unknown Model");
+        expect(cost).toBeUndefined();
+      });
+    });
+
+    describe("getModelVariants", () => {
+      test("should return Claude variants for Claude models", () => {
+        const variants = getModelVariants("Claude Opus 4.5");
+        expect(variants).toBeDefined();
+        expect(variants.low).toBeDefined();
+        expect(variants.high).toBeDefined();
+      });
+
+      test("should return Gemini variants for Gemini models", () => {
+        const variants = getModelVariants("Gemini 2.5 Pro");
+        expect(variants).toBeDefined();
+        expect(variants.low).toBeDefined();
+        expect(variants.high).toBeDefined();
+      });
+
+      test("should return GPT reasoning variants for GPT models", () => {
+        const variants = getModelVariants("GPT 5.2");
+        expect(variants).toBeDefined();
+        expect(variants.low).toEqual({ reasoningEffort: "low" });
+        expect(variants.high).toEqual({ reasoningEffort: "high" });
+      });
+
+      test("should return undefined for models without variants", () => {
+        const variants = getModelVariants("Kimi K2.5");
+        expect(variants).toBeUndefined();
+      });
+    });
+
+    describe("getModelOptions", () => {
+      test("should return options for GPT 5 models", () => {
+        const options = getModelOptions("GPT 5");
+        expect(options).toEqual({ reasoningEffort: "none" });
+      });
+
+      test("should return options for GPT 5.2 models", () => {
+        const options = getModelOptions("GPT 5.2");
+        expect(options).toEqual({ reasoningEffort: "none" });
+      });
+
+      test("should return undefined for models without specific options", () => {
+        const options = getModelOptions("Kimi K2.5");
+        expect(options).toBeUndefined();
+      });
+    });
+
+    describe("SUPPORTED_MODELS", () => {
+      test("should contain expected models", () => {
+        expect("Claude Opus 4.5" in SUPPORTED_MODELS).toBe(true);
+        expect("GPT 5.2" in SUPPORTED_MODELS).toBe(true);
+        expect("Gemini 2.5 Pro" in SUPPORTED_MODELS).toBe(true);
+        expect("Kimi K2.5" in SUPPORTED_MODELS).toBe(true);
+      });
+    });
+  });
+
   describe("parseCliArgs", () => {
     test("should return select-agents as false by default", () => {
       const args = parseCliArgs(["node", "index.mjs"]);
@@ -115,6 +232,21 @@ describe("Helper Functions", () => {
     test("should return select-agents as true when flag is passed", () => {
       const args = parseCliArgs(["node", "index.mjs", "--select-agents"]);
       expect(args["select-agents"]).toBe(true);
+    });
+
+    test("should return supported-models as false by default", () => {
+      const args = parseCliArgs(["node", "index.mjs"]);
+      expect(args["supported-models"]).toBe(false);
+    });
+
+    test("should return supported-models as true when flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "--supported-models"]);
+      expect(args["supported-models"]).toBe(true);
+    });
+
+    test("should return supported-models as true when -m flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "-m"]);
+      expect(args["supported-models"]).toBe(true);
     });
 
     test("should ignore unknown flags without error", () => {

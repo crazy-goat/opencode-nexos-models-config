@@ -1,13 +1,4 @@
-import {
-  getModelVariants,
-  getModelOptions,
-  getModelLimit,
-  checkDependencies,
-  main,
-  asObject,
-  selectAgentModels,
-} from "../index.mjs";
-
+import { getModelVariants, getModelOptions, getModelLimit } from "../models.config.mjs";
 import { execSync } from "node:child_process";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -43,6 +34,19 @@ const originalConsoleLog = console.log;
 describe("Integration Tests", () => {
   let mockConsoleError;
   let mockConsoleLog;
+  let checkDependencies;
+  let main;
+  let asObject;
+  let selectAgentModels;
+
+  beforeAll(async () => {
+    // Import functions from index.mjs after mocks are set up
+    const indexModule = await import("../index.mjs");
+    checkDependencies = indexModule.checkDependencies;
+    main = indexModule.main;
+    asObject = indexModule.asObject;
+    selectAgentModels = indexModule.selectAgentModels;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

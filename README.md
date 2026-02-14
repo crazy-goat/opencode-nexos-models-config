@@ -92,6 +92,22 @@ The tool will:
 2. Generate an opencode configuration with the [nexos-provider](https://github.com/crazy-goat/nexos-provider) plugin
 3. Write the config to `~/.config/opencode/opencode.json`
 
+### Supported models only
+
+To include only models with predefined configuration (costs, limits, variants):
+
+```bash
+opencode-nexos-models-config --supported-models
+```
+
+Or use the short flag:
+
+```bash
+opencode-nexos-models-config -m
+```
+
+This filters the list to only include models from the curated `SUPPORTED_MODELS` list (see below).
+
 ### Agent model selection
 
 If you have agents defined in your `opencode.json` (e.g. `build`, `build-fast`, `build-heavy`, `plan`), you can interactively assign models to them:
@@ -133,18 +149,43 @@ Custom pricing from your existing configuration is always preserved and takes pr
 | `--help`, `-h` | Show help message |
 | `--version`, `-v` | Show version number |
 | `--select-agents`, `-s` | Interactively select models for agents defined in config |
+| `--supported-models`, `-m` | Only include models with predefined configuration |
 | `--output`, `-o` | Write config to a custom file path instead of default |
 
 ## Supported Models
 
-The tool automatically configures the following model families from Nexos AI:
+When using `--supported-models` flag, only these curated models are included:
 
-- **Claude models** (Anthropic) — Claude 3.5 Sonnet, Claude 3.7 Sonnet with thinking variants (low, high)
-- **GPT models** (OpenAI) — GPT-4.1, GPT-4o, GPT-5 series with reasoning variants (low, high)
-- **Gemini models** (Google) — Gemini 2.5 Flash, Gemini 2.5 Pro with thinking variants (low, high)
-- **Kimi models** (Moonshot AI) — Kimi K2.5
+| Model | Provider | Context | Output | Variants |
+|---|---|---|---|---|
+| **Claude Opus 4.5** | Anthropic | 200k | 64k | low, high |
+| **Claude Opus 4.6** | Anthropic | 200k | 128k | low, high |
+| **Claude Sonnet 4.5** | Anthropic | 200k | 64k | low, high |
+| **GPT 5.2** | OpenAI | 400k | 128k | low, high |
+| **GPT 5** | OpenAI | 400k | 128k | low, high |
+| **Gemini 2.5 Pro** | Google | 1M | 65k | low, high |
+| **Gemini 2.5 Flash** | Google | 1M | 65k | low, high |
+| **Kimi K2.5** | Moonshot AI | 256k | 64k | - |
 
-Each model comes with pre-configured context limits, output limits, and pricing information.
+All models come with pre-configured context limits, output limits, and pricing information.
+
+### Variants
+
+- **low**: Minimal thinking/reasoning (faster, cheaper)
+- **high**: Extended thinking/reasoning (more accurate for complex tasks)
+
+### Default mode
+
+Without `--supported-models`, the tool will include **all** available models from the Nexos AI API, with pricing preserved from your existing config.
+
+## Model Configuration
+
+Model metadata is stored in `models.config.mjs` and includes:
+
+- **limits**: Context window and max output tokens
+- **cost**: Input/output pricing per 1M tokens, plus cache read/write if supported
+- **variants**: Model-specific thinking/reasoning variants (low, high)
+- **options**: Default model options (e.g., reasoningEffort)
 
 ## License
 

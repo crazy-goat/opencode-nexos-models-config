@@ -5,219 +5,14 @@ import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { parseArgs } from "node:util";
-
-
-const modelLimitsOverrides = {
-  "Claude Opus 4.5":          { context: 200000, output: 64000 },
-  "Claude Opus 4.6":          { context: 200000, output: 128000 },
-  "Claude Sonnet 4.5":        { context: 200000, output: 64000 },
-  "claude-sonnet-4-20250514": { context: 200000, output: 64000 },
-  "anthropic.claude-sonnet-4-5@20250929 (aoxy-analytics europe-west1)": { context: 200000, output: 64000 },
-  "anthropic.claude-sonnet-4-5@20250929 (oxy-analytics us-east5)":      { context: 200000, output: 64000 },
-  "GPT 5.2":                 { context: 400000, output: 128000 },
-  "GPT 5.2 Chat":            { context: 400000, output: 128000 },
-  "GPT 5":                   { context: 400000, output: 128000 },
-  "gpt-5-mini-2025-08-07":   { context: 400000, output: 128000 },
-  "gpt-5-nano-2025-08-07":   { context: 400000, output: 128000 },
-  "GPT 4.1":                 { context: 1047576, output: 32768 },
-  "gpt-4.1-mini-2025-04-14": { context: 1047576, output: 32768 },
-  "GPT 4o":                  { context: 128000, output: 16384 },
-  "gpt-oss-120b":            { context: 131072, output: 131072 },
-  "Gemini 2.5 Pro":          { context: 1048576, output: 65536 },
-  "Gemini 2.5 Flash":        { context: 1048576, output: 65536 },
-  "codestral-2508":           { context: 256000, output: 16384 },
-  "Kimi K2.5":                { context: 256000, output: 64000 },
-};
-
-const modelCostsDefaults = {
-  "anthropic.claude-haiku-4-5@20251001": {
-    input: 1,
-    output: 5,
-    cache_read: 0.1,
-    cache_write: 1.25,
-  },
-  "anthropic.claude-sonnet-4-5@20250929 (aoxy-analytics europe-west1)": {
-    input: 3,
-    output: 15,
-    cache_read: 0.3,
-    cache_write: 3.75,
-  },
-  "anthropic.claude-sonnet-4-5@20250929 (oxy-analytics us-east5)": {
-    input: 3,
-    output: 15,
-    cache_read: 0.3,
-    cache_write: 3.75,
-  },
-  "Claude Opus 4.5": {
-    input: 5,
-    output: 25,
-    cache_read: 0.5,
-    cache_write: 6.25,
-  },
-  "Claude Opus 4.6": {
-    input: 5,
-    output: 25,
-    cache_read: 0.5,
-    cache_write: 6.25,
-  },
-  "Claude Sonnet 4.5": {
-    input: 3,
-    output: 15,
-    cache_read: 0.3,
-    cache_write: 3.75,
-  },
-  "claude-sonnet-4-20250514": {
-    input: 3,
-    output: 15,
-    cache_read: 0.3,
-    cache_write: 3.75,
-  },
-  // OpenAI models
-  "GPT 5.2": {
-    input: 1.75,
-    output: 14.0,
-    cache_read: 0.175,
-  },
-  "GPT 5": {
-    input: 1.25,
-    output: 10.0,
-    cache_read: 0.125,
-  },
-  "gpt-5-mini-2025-08-07": {
-    input: 0.25,
-    output: 2.0,
-    cache_read: 0.025,
-  },
-  "gpt-5-nano-2025-08-07": {
-    input: 0.05,
-    output: 0.4,
-    cache_read: 0.005,
-  },
-  "GPT 5.2 Chat": {
-    input: 1.75,
-    output: 14.0,
-    cache_read: 0.175,
-  },
-  "GPT 4.1": {
-    input: 2.0,
-    output: 8.0,
-    cache_read: 0.5,
-  },
-  "gpt-4.1-mini-2025-04-14": {
-    input: 0.4,
-    output: 1.6,
-    cache_read: 0.1,
-  },
-  "GPT 4o": {
-    input: 2.5,
-    output: 10.0,
-    cache_read: 1.25,
-  },
-  // Google Gemini models
-  "Gemini 2.5 Pro": {
-    input: 1.25,
-    output: 10.0,
-    cache_read: 0.125,
-  },
-  "Gemini 2.5 Flash": {
-    input: 0.3,
-    output: 2.5,
-    cache_read: 0.03,
-  },
-  "Kimi K2.5": {
-    input: 0.6,
-    output: 3.0,
-    cache_read: 0.1,
-  },
-};
-
-const skippedModelPrefixes = ["Gemini 3"];
-
-const claudeVariants = {
-  low: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 1024,
-    },
-  },
-  high: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 32000,
-    },
-  },
-};
-
-const geminiVariants = {
-  low: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 1024,
-    },
-  },
-  high: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 24576,
-    },
-  },
-};
-
-const geminiProVariants = {
-  low: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 1024,
-    },
-  },
-  high: {
-    thinking: {
-      type: "enabled",
-      budgetTokens: 32768,
-    },
-  },
-};
-
-const gptReasoningVariants = {
-  low: {
-    reasoningEffort: "low",
-  },
-  high: {
-    reasoningEffort: "high",
-  },
-};
-
-export function clone(value) {
-  return value === undefined ? undefined : structuredClone(value);
-}
-
-export function getModelVariants(displayName) {
-  if (
-    displayName.startsWith("anthropic.claude-") ||
-    displayName.startsWith("claude-") ||
-    displayName.includes("Claude ")
-  ) {
-    return clone(claudeVariants);
-  }
-
-  if (displayName.includes("Gemini") && displayName.includes("Pro")) {
-    return clone(geminiProVariants);
-  }
-
-  if (displayName.includes("Gemini")) {
-    return clone(geminiVariants);
-  }
-
-  if (displayName === "GPT 5" || displayName === "GPT 5.2") {
-    return clone(gptReasoningVariants);
-  }
-}
-
-export function getModelOptions(displayName) {
-  if (displayName === "GPT 5" || displayName === "GPT 5.2") {
-    return { reasoningEffort: "medium" };
-  }
-}
+import {
+  getModelVariants,
+  getModelOptions,
+  isSkippedModel,
+  getModelLimit,
+  getModelCost,
+  isModelSupported,
+} from "./models.config.mjs";
 
 export function asObject(value) {
   return value && typeof value === "object" ? value : undefined;
@@ -245,23 +40,6 @@ export function getMaxOutputTokens(model) {
   return model.max_output_tokens || 64000;
 }
 
-export function isSkippedModel(displayName) {
-  return skippedModelPrefixes.some((prefix) => displayName.startsWith(prefix));
-}
-
-export function getModelLimit(model) {
-  const displayName = getDisplayName(model);
-  if (modelLimitsOverrides[displayName]) {
-    return modelLimitsOverrides[displayName];
-  }
-  const ctx = getContextWindow(model);
-  const out = getMaxOutputTokens(model);
-  console.error(
-    `Warning: no context window override for model "${displayName}", using defaults (context=${ctx}, output=${out})`
-  );
-  return { context: ctx, output: out };
-}
-
 export function checkDependencies() {
   try {
     execSync("which opencode", { stdio: "ignore" });
@@ -281,6 +59,7 @@ export function parseCliArgs(argv) {
     args: argv.slice(2),
     options: {
       "select-agents": { type: "boolean", short: "s", default: false },
+      "supported-models": { type: "boolean", short: "m", default: false },
       "output": { type: "string", short: "o" },
       "help": { type: "boolean", short: "h", default: false },
       "version": { type: "boolean", short: "v", default: false },
@@ -296,10 +75,11 @@ export function showHelp() {
 Fetch available models from Nexos AI API and generate opencode configuration.
 
 Options:
-  -h, --help           Show this help message
-  -v, --version        Show version number
-  -o, --output <path>  Write config to custom file path
-  -s, --select-agents  Interactively select models for agents
+  -h, --help              Show this help message
+  -v, --version           Show version number
+  -o, --output <path>     Write config to custom file path
+  -s, --select-agents     Interactively select models for agents
+  -m, --supported-models  Only include models with predefined costs
 
 Environment variables:
   NEXOS_API_KEY        Your Nexos AI API key (required)
@@ -434,18 +214,6 @@ export async function getExistingModelCosts() {
   }
 }
 
-export function getModelCost(displayName, existingCosts) {
-  // Always prefer existing costs from config (user's custom values)
-  if (existingCosts[displayName]) {
-    return existingCosts[displayName];
-  }
-  // Fall back to hardcoded defaults if available
-  if (modelCostsDefaults[displayName]) {
-    return modelCostsDefaults[displayName];
-  }
-  return undefined;
-}
-
 export async function main() {
   const cliArgs = parseCliArgs(process.argv);
 
@@ -516,6 +284,7 @@ export async function main() {
 
   const models = {};
   const skippedModels = [];
+  const unsupportedModels = [];
 
   for (const model of modelsList) {
     if ((model.name || "").includes("(No PII)")) continue;
@@ -529,10 +298,20 @@ export async function main() {
       continue;
     }
 
-    const limit = getModelLimit(model);
+    const limit = getModelLimit(displayName, model);
     const variants = getModelVariants(displayName);
     const options = getModelOptions(displayName);
     const cost = getModelCost(displayName, existingCosts);
+
+    if (cliArgs["supported-models"]) {
+      // With --supported-models, only include models defined in SUPPORTED_MODELS
+      // Ignore existing costs from config
+      const isSupported = isModelSupported(displayName);
+      if (!isSupported) {
+        unsupportedModels.push(displayName);
+        continue;
+      }
+    }
 
     models[displayName] = {
       name: displayName,
@@ -549,8 +328,17 @@ export async function main() {
     );
   }
 
+  if (unsupportedModels.length > 0) {
+    console.error(
+      `Filtered out ${unsupportedModels.length} unsupported models: ${unsupportedModels.join(", ")}`
+    );
+  }
+
   const modelNames = Object.keys(models);
-  console.error(`\nModels to be added (${modelNames.length}):\n`);
+  const listTitle = cliArgs["supported-models"] 
+    ? `\nSupported models to be added (${modelNames.length}):\n`
+    : `\nModels to be added (${modelNames.length}):\n`;
+  console.error(listTitle);
   for (const name of modelNames) {
     console.error(`  - ${name}`);
   }
@@ -606,4 +394,3 @@ export async function main() {
 if (process.env.NODE_ENV !== "test") {
   main();
 }
-

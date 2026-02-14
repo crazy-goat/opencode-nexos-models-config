@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.9.0] - 2026-02-14
+
+### Added
+
+- `--supported-models` / `-m` flag — filter only supported models with predefined configuration
+  - Uses only models defined in `SUPPORTED_MODELS` configuration
+  - Ignores pricing from existing config (unlike default mode)
+  - Shows "Supported models to be added" message when active
+
+### Changed
+
+- **Major refactoring**: Model configuration moved to separate file `models.config.mjs`
+  - All model metadata (limits, costs, variants, options) in one place
+  - Variants are now defined inline per model (not separate definitions)
+  - Easier to maintain and extend model configurations
+
+### Removed
+
+- Removed multiple models from supported list — now only 8 curated models:
+  - **Claude**: Opus 4.5, Opus 4.6, Sonnet 4.5
+  - **GPT**: 5.2, 5
+  - **Gemini**: 2.5 Pro, 2.5 Flash
+  - **Kimi**: K2.5
+- Removed regional Claude variants (anthropic.*)
+- Removed GPT mini/nano variants (gpt-5-mini, gpt-5-nano)
+- Removed GPT 4.1, GPT 4o, GPT 4.1 mini, GPT 5.2 Chat
+- Removed gpt-oss-120b and codestral-2508
+
 ## [1.8.0] - 2026-02-13
 
 ### Added
