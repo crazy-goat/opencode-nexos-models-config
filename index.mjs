@@ -60,6 +60,7 @@ export function parseCliArgs(argv) {
     options: {
       "select-agents": { type: "boolean", short: "s", default: false },
       "supported-models": { type: "boolean", short: "m", default: false },
+      "custom-costs": { type: "boolean", short: "c", default: false },
       "output": { type: "string", short: "o" },
       "help": { type: "boolean", short: "h", default: false },
       "version": { type: "boolean", short: "v", default: false },
@@ -80,6 +81,7 @@ Options:
   -o, --output <path>     Write config to custom file path
   -s, --select-agents     Interactively select models for agents
   -m, --supported-models  Only include models with predefined costs
+  -c, --custom-costs      Interactively set custom costs for models
 
 Environment variables:
   NEXOS_API_KEY        Your Nexos AI API key (required)
@@ -190,6 +192,132 @@ export async function selectAgentModels(config, modelNames, providerName, prompt
     config.agent[agentName].model = selected;
   }
   return true;
+}
+
+export async function configureCustomCosts(config, modelNames, providerName, supportedModelsOnly = false, prompts = null) {
+  const { search, input, confirm } = prompts || await import("@inquirer/prompts");
+
+  const providerConfig = asObject(config.provider?.[providerName]);
+  const modelsConfig = asObject(providerConfig?.models);
+
+  if (!modelsConfig || Object.keys(modelsConfig).length === 0) {
+    console.error("\nNo models configured yet. Run without --custom-costs first.");
+    return false;
+  }
+
+  // Filter models based on supported-models flag
+  let availableModels = Object.keys(modelsConfig);
+  if (supportedModelsOnly) {
+    const { isModelSupported } = await import("./models.config.mjs");
+    availableModels = availableModels.filter(isModelSupported);
+    if (availableModels.length === 0) {
+      console.error("\nNo supported models found in configuration.");
+      console.error("Run without -m flag to see all models.");
+      return false;
+    }
+  }
+
+  console.error("\n\x1b[1m--- Custom Cost Configuration ---\x1b[0m\n");
+  console.error("Use \x1b[36m\u2191\u2193\x1b[0m to navigate, \x1b[36mtype\x1b[0m to filter, \x1b[36mEnter\x1b[0m to select");
+  console.error("Select '\x1b[33m(Done - don't change more)\x1b[0m' when finished\n");
+
+  let hasChanges = false;
+  let continueEditing = true;
+
+  while (continueEditing) {
+    const choices = [
+      { name: "(Done - don't change more)", value: null },
+      ...availableModels.map((name) => {
+        const currentCost = modelsConfig[name]?.cost;
+        const costInfo = currentCost
+          ? ` [in: ${currentCost.input || '-'}, out: ${currentCost.output || '-'}]`
+          : ' [no cost set]';
+        return {
+          name: `${name}${costInfo}`,
+          value: name,
+        };
+      }),
+    ];
+
+    const selectedModel = await search({
+      message: "Select a model to set custom costs (or choose 'Done' to finish):",
+      source: (term) => {
+        const input = (term || "").toLowerCase();
+        return choices.filter((c) => c.name.toLowerCase().includes(input));
+      },
+    });
+
+    if (!selectedModel) {
+      continueEditing = false;
+      break;
+    }
+
+    const currentCost = modelsConfig[selectedModel]?.cost || {};
+
+    console.error(`\n\x1b[1mSetting costs for: ${selectedModel}\x1b[0m`);
+    console.error("Leave blank to keep current value. Prices are per 1M tokens.\n");
+
+    const newInput = await input({
+      message: `Input cost (current: ${currentCost.input ?? 'not set'}):`,
+      default: currentCost.input?.toString() || '',
+    });
+
+    const newOutput = await input({
+      message: `Output cost (current: ${currentCost.output ?? 'not set'}):`,
+      default: currentCost.output?.toString() || '',
+    });
+
+    const newCacheRead = await input({
+      message: `Cache read cost (current: ${currentCost.cache_read ?? 'not set'}):`,
+      default: currentCost.cache_read?.toString() || '',
+    });
+
+    const newCacheWrite = await input({
+      message: `Cache write cost (current: ${currentCost.cache_write ?? 'not set'}):`,
+      default: currentCost.cache_write?.toString() || '',
+    });
+
+    const cost = {};
+    if (newInput !== '' && !isNaN(parseFloat(newInput))) {
+      cost.input = parseFloat(newInput);
+    } else if (currentCost.input !== undefined) {
+      cost.input = currentCost.input;
+    }
+
+    if (newOutput !== '' && !isNaN(parseFloat(newOutput))) {
+      cost.output = parseFloat(newOutput);
+    } else if (currentCost.output !== undefined) {
+      cost.output = currentCost.output;
+    }
+
+    if (newCacheRead !== '' && !isNaN(parseFloat(newCacheRead))) {
+      cost.cache_read = parseFloat(newCacheRead);
+    } else if (currentCost.cache_read !== undefined) {
+      cost.cache_read = currentCost.cache_read;
+    }
+
+    if (newCacheWrite !== '' && !isNaN(parseFloat(newCacheWrite))) {
+      cost.cache_write = parseFloat(newCacheWrite);
+    } else if (currentCost.cache_write !== undefined) {
+      cost.cache_write = currentCost.cache_write;
+    }
+
+    if (Object.keys(cost).length > 0) {
+      if (!modelsConfig[selectedModel]) {
+        modelsConfig[selectedModel] = {};
+      }
+      modelsConfig[selectedModel].cost = cost;
+      hasChanges = true;
+      console.error(`\n\x1b[32m\u2713 Updated costs for ${selectedModel}\x1b[0m\n`);
+    }
+
+    continueEditing = await confirm({
+      message: 'Set costs for another model?',
+      default: true,
+    });
+  }
+
+  return hasChanges;
 }
 
 export async function getExistingModelCosts() {
@@ -370,10 +498,7 @@ export async function main() {
       baseURL: existingProvider?.options?.baseURL || `${apiBaseURL}/`,
       timeout: existingProvider?.options?.timeout ?? 300000,
     },
-    models: {
-      ...existingModels,
-      ...models,
-    },
+    models: models,
   };
 
   await mkdir(dirname(configPath), { recursive: true });
@@ -387,6 +512,14 @@ export async function main() {
     if (updated) {
       await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
       console.error("Agent configuration updated.");
+    }
+  }
+
+  if (cliArgs["custom-costs"]) {
+    const updated = await configureCustomCosts(config, modelNames, "nexos-ai", cliArgs["supported-models"]);
+    if (updated) {
+      await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+      console.error("Model costs configuration updated.");
     }
   }
 }

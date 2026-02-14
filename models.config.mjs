@@ -72,6 +72,15 @@ export const SUPPORTED_MODELS = {
   },
 };
 
+// Default fallback costs for models not in SUPPORTED_MODELS
+// Uses Claude Opus 4.6 pricing as reference
+export const DEFAULT_FALLBACK_COSTS = {
+  input: 5,
+  output: 25,
+  cache_read: 0.5,
+  cache_write: 6.25,
+};
+
 export const skippedModelPrefixes = ["Gemini 3"];
 
 export function clone(value) {
@@ -113,7 +122,8 @@ export function getModelCost(displayName, existingCosts) {
     return clone(config.cost);
   }
   
-  return undefined;
+  // Use fallback defaults for models not in SUPPORTED_MODELS
+  return clone(DEFAULT_FALLBACK_COSTS);
 }
 
 export function getModelVariants(displayName) {

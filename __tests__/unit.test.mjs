@@ -4,8 +4,9 @@ import {
   getContextWindow,
   getMaxOutputTokens,
   parseCliArgs,
+  configureCustomCosts,
 } from "../index.mjs";
-import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, isModelSupported, SUPPORTED_MODELS } from "../models.config.mjs";
+import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, isModelSupported, SUPPORTED_MODELS, DEFAULT_FALLBACK_COSTS } from "../models.config.mjs";
 
 describe("Helper Functions", () => {
   describe("clone", () => {
@@ -162,9 +163,15 @@ describe("Helper Functions", () => {
         expect(cost).toEqual({ input: 10, output: 50 });
       });
 
-      test("should return undefined for unsupported models", () => {
+      test("should return fallback costs for unsupported models", () => {
         const cost = getModelCost("Unknown Model");
-        expect(cost).toBeUndefined();
+        expect(cost).toEqual({ input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 });
+      });
+
+      test("should prefer user costs over fallback for unsupported models", () => {
+        const existingCosts = { "Unknown Model": { input: 15, output: 40 } };
+        const cost = getModelCost("Unknown Model", existingCosts);
+        expect(cost).toEqual({ input: 15, output: 40 });
       });
     });
 
@@ -210,6 +217,23 @@ describe("Helper Functions", () => {
       test("should return undefined for models without specific options", () => {
         const options = getModelOptions("Kimi K2.5");
         expect(options).toBeUndefined();
+      });
+    });
+
+    describe("DEFAULT_FALLBACK_COSTS", () => {
+      test("should be defined with expected values", () => {
+        expect(DEFAULT_FALLBACK_COSTS).toBeDefined();
+        expect(DEFAULT_FALLBACK_COSTS).toEqual({
+          input: 5,
+          output: 25,
+          cache_read: 0.5,
+          cache_write: 6.25,
+        });
+      });
+
+      test("should match Claude Opus 4.6 pricing", () => {
+        const claudeOpusCosts = getModelCost("Claude Opus 4.6");
+        expect(DEFAULT_FALLBACK_COSTS).toEqual(claudeOpusCosts);
       });
     });
 
@@ -267,6 +291,191 @@ describe("Helper Functions", () => {
     test("should return output path when -o flag is passed", () => {
       const args = parseCliArgs(["node", "index.mjs", "-o", "/custom/path.json"]);
       expect(args.output).toBe("/custom/path.json");
+    });
+
+    test("should return custom-costs as false by default", () => {
+      const args = parseCliArgs(["node", "index.mjs"]);
+      expect(args["custom-costs"]).toBe(false);
+    });
+
+    test("should return custom-costs as true when flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "--custom-costs"]);
+      expect(args["custom-costs"]).toBe(true);
+    });
+
+    test("should return custom-costs as true when -c flag is passed", () => {
+      const args = parseCliArgs(["node", "index.mjs", "-c"]);
+      expect(args["custom-costs"]).toBe(true);
+    });
+  });
+
+  describe("configureCustomCosts", () => {
+    test("should return false when no models configured", async () => {
+      const config = { provider: { "nexos-ai": { models: {} } } };
+      const result = await configureCustomCosts(config, [], "nexos-ai");
+      expect(result).toBe(false);
+    });
+
+    test("should return false when provider not configured", async () => {
+      const config = { provider: {} };
+      const result = await configureCustomCosts(config, [], "nexos-ai");
+      expect(result).toBe(false);
+    });
+
+    test("should return false when supportedModelsOnly is true but no supported models exist", async () => {
+      const config = {
+        provider: {
+          "nexos-ai": {
+            models: {
+              "Unknown Model 1": { name: "Unknown Model 1" },
+              "Unknown Model 2": { name: "Unknown Model 2" },
+            }
+          }
+        }
+      };
+
+      const result = await configureCustomCosts(config, [], "nexos-ai", true);
+      
+      expect(result).toBe(false);
+    });
+
+    test("should update costs when user provides new values", async () => {
+      const config = {
+        provider: {
+          "nexos-ai": {
+            models: {
+              "Test Model": { name: "Test Model" }
+            }
+          }
+        }
+      };
+
+      // Create mock prompts using plain functions
+      const searchCalls = [];
+      const inputCalls = [];
+      let confirmCalls = 0;
+
+      const mockPrompts = {
+        search: async ({ message, source }) => {
+          searchCalls.push({ message, hasSource: !!source });
+          // Return Test Model first, then null (done)
+          if (searchCalls.length === 1) return "Test Model";
+          return null;
+        },
+        input: async ({ message, default: defaultValue }) => {
+          inputCalls.push({ message, defaultValue });
+          // Return: input=10, output=20, cache_read=5, cache_write=8
+          const responses = ["10", "20", "5", "8"];
+          return responses[inputCalls.length - 1] || "";
+        },
+        confirm: async () => {
+          confirmCalls++;
+          // Continue once, then stop
+          return confirmCalls <= 1;
+        },
+      };
+
+      const result = await configureCustomCosts(config, ["Test Model"], "nexos-ai", false, mockPrompts);
+      
+      expect(result).toBe(true);
+      expect(config.provider["nexos-ai"].models["Test Model"].cost).toEqual({
+        input: 10,
+        output: 20,
+        cache_read: 5,
+        cache_write: 8,
+      });
+    });
+
+    test("should preserve existing costs when inputs are blank", async () => {
+      const config = {
+        provider: {
+          "nexos-ai": {
+            models: {
+              "Test Model": { 
+                name: "Test Model",
+                cost: { input: 5, output: 15, cache_read: 0.5 }
+              }
+            }
+          }
+        }
+      };
+
+      let searchCallCount = 0;
+      let inputCallCount = 0;
+
+      const mockPrompts = {
+        search: async () => {
+          searchCallCount++;
+          // Return Test Model first, then null (done)
+          if (searchCallCount === 1) return "Test Model";
+          return null;
+        },
+        input: async () => {
+          inputCallCount++;
+          // Return: "" (keep input), "25" (update output), "" (keep cache_read), "" (no cache_write)
+          const responses = ["", "25", "", ""];
+          return responses[inputCallCount - 1] || "";
+        },
+        confirm: async () => false, // Stop after first model
+      };
+
+      const result = await configureCustomCosts(config, ["Test Model"], "nexos-ai", false, mockPrompts);
+      
+      expect(result).toBe(true);
+      expect(config.provider["nexos-ai"].models["Test Model"].cost).toEqual({
+        input: 5,
+        output: 25,
+        cache_read: 0.5,
+      });
+    });
+
+    test("should filter to supported models only when supportedModelsOnly is true", async () => {
+      const config = {
+        provider: {
+          "nexos-ai": {
+            models: {
+              "Claude Opus 4.5": { name: "Claude Opus 4.5" },
+              "Unknown Model": { name: "Unknown Model" },
+              "GPT 5": { name: "GPT 5" },
+            }
+          }
+        }
+      };
+
+      let searchCallCount = 0;
+
+      const mockPrompts = {
+        search: async ({ source }) => {
+          searchCallCount++;
+          // Check that only supported models are in choices when source is called
+          if (source) {
+            const allChoices = source("");
+            // Should only contain Claude Opus 4.5, GPT 5, and Done option
+            const modelNames = allChoices
+              .filter(c => c.value !== null)
+              .map(c => c.value);
+            expect(modelNames).toContain("Claude Opus 4.5");
+            expect(modelNames).toContain("GPT 5");
+            expect(modelNames).not.toContain("Unknown Model");
+          }
+          // Return Claude Opus 4.5 first, then null (done)
+          if (searchCallCount === 1) return "Claude Opus 4.5";
+          return null;
+        },
+        input: async () => "10",
+        confirm: async () => false,
+      };
+
+      const result = await configureCustomCosts(
+        config, 
+        Object.keys(config.provider["nexos-ai"].models), 
+        "nexos-ai", 
+        true, 
+        mockPrompts
+      );
+      
+      expect(result).toBe(true);
+      expect(searchCallCount).toBeGreaterThan(0);
     });
   });
 });

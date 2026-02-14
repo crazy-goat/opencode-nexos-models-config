@@ -1,6 +1,6 @@
 {
   "name": "opencode-nexos-models-config",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "List available models on nexos.ai",
   "type": "module",
   "bin": "./index.mjs",
@@ -10,6 +10,9 @@
     "README.md",
     "CHANGELOG.md"
   ],
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
   "keywords": [
     "nexos",
     "ai",

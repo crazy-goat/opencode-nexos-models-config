@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.10.0] - 2026-02-14
+
+### Added
+
+- `--custom-costs` / `-c` flag — interactive custom cost configuration for models
+  - Allows users to set custom prices (input, output, cache read, cache write) per model
+  - Shows current costs in the selection list
+  - Option to skip setting costs for a model
+  - Only shows models from existing config file (not from API)
+- `DEFAULT_FALLBACK_COSTS` constant for models not in SUPPORTED_MODELS
+  - Uses Claude Opus 4.6 pricing: $5/M input, $25/M output, $0.5/M cache read, $6.25/M cache write
+  - Exported from `models.config.mjs` for external use
+
+### Changed
+
+- `getModelCost()` now returns fallback costs for unsupported models instead of undefined
+  - Priority: user costs > hardcoded defaults > fallback defaults
+- App always overwrites `provider.nexos-ai.models` (removed merge with existing models)
+  - Old behavior: merged new API models with existing config
+  - New behavior: completely replaces models with fresh API data
+- `--supported-models` / `-m` flag now works correctly with `--custom-costs`
+  - When used together, only shows supported models in the cost configuration UI
+
+### Fixed
+
+- Fixed `configureCustomCosts` tests to work without `jest.fn()` in ES modules
+  - All 55 tests now passing
+
 ## [1.9.0] - 2026-02-14
 
 ### Added

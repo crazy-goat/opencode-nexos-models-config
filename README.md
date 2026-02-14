@@ -118,20 +118,55 @@ opencode-nexos-models-config --select-agents
 
 This opens an interactive prompt for each agent where you can search and select a model using arrow keys and type-to-filter.
 
+### Custom model costs
+
+To interactively set custom prices for models in your config:
+
+```bash
+opencode-nexos-models-config --custom-costs
+```
+
+Or use the short flag:
+
+```bash
+opencode-nexos-models-config -c
+```
+
+This allows you to:
+- Set custom input/output/cache prices per model
+- See current costs while selecting
+- Update prices for multiple models in one session
+- Leave fields blank to keep existing values
+
+When used with `--supported-models`, only supported models will be shown:
+
+```bash
+opencode-nexos-models-config -m -c
+```
+
 ### Model pricing information
 
-The tool automatically includes pricing information for available models in the generated configuration. Pricing includes:
+The tool automatically includes pricing information for all models in the generated configuration. Pricing includes:
 
 - **Input cost**: Price per million input tokens
 - **Output cost**: Price per million output tokens
 - **Cache read**: Price per million cached tokens read (if supported)
 - **Cache write**: Price per million tokens written to cache (if supported)
 
-Custom pricing from your existing configuration is always preserved and takes priority over default pricing. This allows you to:
+**Default pricing**:
+- Supported models have predefined costs (see table below)
+- Unknown models use fallback costs based on Claude Opus 4.6 pricing:
+  - Input: $5/M tokens
+  - Output: $25/M tokens
+  - Cache read: $0.5/M tokens
+  - Cache write: $6.25/M tokens
 
-- Override pricing for specific models
-- Add custom cost models not included in defaults
-- Keep your pricing configuration synchronized across updates
+**Custom pricing**:
+- Your existing custom costs are always preserved
+- Use `--custom-costs` flag to set new custom prices interactively
+- Custom costs take priority over default pricing
+
+**Note**: The app always overwrites the entire model list with fresh data from the API on each run.
 
 ## Configuration
 
@@ -150,6 +185,7 @@ Custom pricing from your existing configuration is always preserved and takes pr
 | `--version`, `-v` | Show version number |
 | `--select-agents`, `-s` | Interactively select models for agents defined in config |
 | `--supported-models`, `-m` | Only include models with predefined configuration |
+| `--custom-costs`, `-c` | Interactively set custom costs for models |
 | `--output`, `-o` | Write config to a custom file path instead of default |
 
 ## Supported Models
@@ -176,7 +212,9 @@ All models come with pre-configured context limits, output limits, and pricing i
 
 ### Default mode
 
-Without `--supported-models`, the tool will include **all** available models from the Nexos AI API, with pricing preserved from your existing config.
+Without `--supported-models`, the tool will include **all** available models from the Nexos AI API. The entire model list is replaced on each run to ensure you have the latest models and pricing.
+
+**Important**: Your custom costs set via `--custom-costs` are preserved and take priority, but the model list itself is always refreshed from the API.
 
 ## Model Configuration
 
