@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.11.0] - 2026-02-14
+
+### Added
+
+- `--supported-models` / `-m` flag now accepts `true`/`false` values
+  - Default is `true` — only supported models are included when flag is not provided
+  - Use `--supported-models=false` or `-m false` to include all models from API
+  - Examples added to help message
+- `parseSupportedModelsFlag()` function to parse boolean-like string values
+
+### Changed
+
+- **BREAKING CHANGE**: Default behavior now filters to supported models only (previously showed all models by default)
+  - To restore previous behavior, use `--supported-models=false` or `-m false`
+- Changed `--supported-models` type from boolean to string in CLI args parsing
+
+### Fixed
+
+- Improved English wording in warning messages:
+  - "tool use not supported" → "tool usage not supported"
+  - "no limit config" → "no predefined limits"
+
 ## [1.10.0] - 2026-02-14
 
 ### Added
@@ -162,4 +184,4 @@
 
 - Basic model config generation from Nexos AI API
 - Support for model limit overrides
-- Skip Gemini 3 models (tool use not supported)
+- Skip Gemini 3 models (tool usage not supported)

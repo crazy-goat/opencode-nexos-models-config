@@ -5,6 +5,7 @@ import {
   getMaxOutputTokens,
   parseCliArgs,
   configureCustomCosts,
+  parseSupportedModelsFlag,
 } from "../index.mjs";
 import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, isModelSupported, SUPPORTED_MODELS, DEFAULT_FALLBACK_COSTS } from "../models.config.mjs";
 
@@ -258,19 +259,25 @@ describe("Helper Functions", () => {
       expect(args["select-agents"]).toBe(true);
     });
 
-    test("should return supported-models as false by default", () => {
+    test("should return supported-models as undefined by default", () => {
       const args = parseCliArgs(["node", "index.mjs"]);
-      expect(args["supported-models"]).toBe(false);
+      expect(args["supported-models"]).toBeUndefined();
     });
 
-    test("should return supported-models as true when flag is passed", () => {
+    test("should return supported-models as true when flag is passed without value", () => {
       const args = parseCliArgs(["node", "index.mjs", "--supported-models"]);
+      // parseArgs returns true for string type flags when passed without value
       expect(args["supported-models"]).toBe(true);
     });
 
-    test("should return supported-models as true when -m flag is passed", () => {
-      const args = parseCliArgs(["node", "index.mjs", "-m"]);
-      expect(args["supported-models"]).toBe(true);
+    test("should return supported-models value when flag is passed with value", () => {
+      const args = parseCliArgs(["node", "index.mjs", "--supported-models", "false"]);
+      expect(args["supported-models"]).toBe("false");
+    });
+
+    test("should return supported-models value when -m flag is passed with value", () => {
+      const args = parseCliArgs(["node", "index.mjs", "-m", "true"]);
+      expect(args["supported-models"]).toBe("true");
     });
 
     test("should ignore unknown flags without error", () => {
@@ -306,6 +313,59 @@ describe("Helper Functions", () => {
     test("should return custom-costs as true when -c flag is passed", () => {
       const args = parseCliArgs(["node", "index.mjs", "-c"]);
       expect(args["custom-costs"]).toBe(true);
+    });
+  });
+
+  describe("parseSupportedModelsFlag", () => {
+    test("should return true when value is undefined (default behavior)", () => {
+      expect(parseSupportedModelsFlag(undefined)).toBe(true);
+    });
+
+    test("should return true when value is empty string", () => {
+      expect(parseSupportedModelsFlag("")).toBe(true);
+    });
+
+    test("should return true when value is 'true'", () => {
+      expect(parseSupportedModelsFlag("true")).toBe(true);
+      expect(parseSupportedModelsFlag("TRUE")).toBe(true);
+      expect(parseSupportedModelsFlag("True")).toBe(true);
+    });
+
+    test("should return true when value is '1'", () => {
+      expect(parseSupportedModelsFlag("1")).toBe(true);
+    });
+
+    test("should return true when value is 'yes'", () => {
+      expect(parseSupportedModelsFlag("yes")).toBe(true);
+      expect(parseSupportedModelsFlag("YES")).toBe(true);
+    });
+
+    test("should return false when value is 'false'", () => {
+      expect(parseSupportedModelsFlag("false")).toBe(false);
+      expect(parseSupportedModelsFlag("FALSE")).toBe(false);
+      expect(parseSupportedModelsFlag("False")).toBe(false);
+    });
+
+    test("should return false when value is '0'", () => {
+      expect(parseSupportedModelsFlag("0")).toBe(false);
+    });
+
+    test("should return false when value is 'no'", () => {
+      expect(parseSupportedModelsFlag("no")).toBe(false);
+      expect(parseSupportedModelsFlag("NO")).toBe(false);
+    });
+
+    test("should return true for any other string value", () => {
+      expect(parseSupportedModelsFlag("random")).toBe(true);
+      expect(parseSupportedModelsFlag("abc")).toBe(true);
+    });
+
+    test("should handle boolean true as input", () => {
+      expect(parseSupportedModelsFlag(true)).toBe(true);
+    });
+
+    test("should handle boolean false as input", () => {
+      expect(parseSupportedModelsFlag(false)).toBe(false);
     });
   });
 

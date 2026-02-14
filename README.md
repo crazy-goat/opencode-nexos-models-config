@@ -94,16 +94,22 @@ The tool will:
 
 ### Supported models only
 
-To include only models with predefined configuration (costs, limits, variants):
+By default, only models with predefined configuration (costs, limits, variants) are included. This is equivalent to running:
 
 ```bash
+opencode-nexos-models-config
+# or
 opencode-nexos-models-config --supported-models
+# or
+opencode-nexos-models-config -m
 ```
 
-Or use the short flag:
+To include **all** available models from the API (not just supported ones):
 
 ```bash
-opencode-nexos-models-config -m
+opencode-nexos-models-config --supported-models=false
+# or
+opencode-nexos-models-config -m false
 ```
 
 This filters the list to only include models from the curated `SUPPORTED_MODELS` list (see below).
@@ -179,13 +185,13 @@ The tool automatically includes pricing information for all models in the genera
 
 ### CLI Flags
 
-| Flag | Description |
-|---|---|
-| `--help`, `-h` | Show help message |
-| `--version`, `-v` | Show version number |
-| `--select-agents`, `-s` | Interactively select models for agents defined in config |
-| `--supported-models`, `-m` | Only include models with predefined configuration |
-| `--custom-costs`, `-c` | Interactively set custom costs for models |
+| Flag | Description | Default |
+|---|---|---|
+| `--help`, `-h` | Show help message | - |
+| `--version`, `-v` | Show version number | - |
+| `--select-agents`, `-s` | Interactively select models for agents defined in config | `false` |
+| `--supported-models`, `-m` | Only include models with predefined configuration (`true`/`false`) | `true` |
+| `--custom-costs`, `-c` | Interactively set custom costs for models | `false` |
 | `--output`, `-o` | Write config to a custom file path instead of default |
 
 ## Supported Models
@@ -212,7 +218,15 @@ All models come with pre-configured context limits, output limits, and pricing i
 
 ### Default mode
 
-Without `--supported-models`, the tool will include **all** available models from the Nexos AI API. The entire model list is replaced on each run to ensure you have the latest models and pricing.
+By default, the tool only includes **supported models** from the curated list above. This ensures you work with models that have pre-configured costs, limits, and variants.
+
+To include **all** available models from the Nexos AI API (including unsupported ones):
+
+```bash
+opencode-nexos-models-config --supported-models=false
+```
+
+The entire model list is replaced on each run to ensure you have the latest models and pricing.
 
 **Important**: Your custom costs set via `--custom-costs` are preserved and take priority, but the model list itself is always refreshed from the API.
 

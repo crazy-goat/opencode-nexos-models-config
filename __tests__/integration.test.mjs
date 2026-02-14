@@ -209,7 +209,7 @@ describe("Integration Tests", () => {
 
       expect(mockConsoleError).toHaveBeenCalledWith("Fetching models from Nexos AI API...");
       expect(execSync).toHaveBeenCalledWith("which opencode", { stdio: "ignore" });
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Skipped 1 models (tool use not supported): Gemini 3 Pro"));
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Skipped 1 models (tool usage not supported): Gemini 3 Pro"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Models to be added (4):"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - Claude Sonnet 4.5"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - Gemini 2.5 Flash"));

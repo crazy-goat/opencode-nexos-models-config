@@ -59,7 +59,7 @@ export function parseCliArgs(argv) {
     args: argv.slice(2),
     options: {
       "select-agents": { type: "boolean", short: "s", default: false },
-      "supported-models": { type: "boolean", short: "m", default: false },
+      "supported-models": { type: "string", short: "m" },
       "custom-costs": { type: "boolean", short: "c", default: false },
       "output": { type: "string", short: "o" },
       "help": { type: "boolean", short: "h", default: false },
@@ -68,6 +68,17 @@ export function parseCliArgs(argv) {
     strict: false,
   });
   return values;
+}
+
+export function parseSupportedModelsFlag(value) {
+  // Default to true when flag is not provided
+  if (value === undefined) return true;
+  // Parse string values
+  const lower = String(value).toLowerCase();
+  if (lower === "true" || lower === "1" || lower === "yes") return true;
+  if (lower === "false" || lower === "0" || lower === "no") return false;
+  // Default to true for any other value (including empty string)
+  return true;
 }
 
 export function showHelp() {
@@ -80,12 +91,17 @@ Options:
   -v, --version           Show version number
   -o, --output <path>     Write config to custom file path
   -s, --select-agents     Interactively select models for agents
-  -m, --supported-models  Only include models with predefined costs
+  -m, --supported-models  Only include models with predefined costs (default: true)
   -c, --custom-costs      Interactively set custom costs for models
 
 Environment variables:
   NEXOS_API_KEY        Your Nexos AI API key (required)
   NEXOS_BASE_URL       Custom API base URL (default: https://api.nexos.ai/v1)
+
+Examples:
+  opencode-nexos-models-config                    # Use supported models only (default)
+  opencode-nexos-models-config -m false           # Include all models
+  opencode-nexos-models-config --supported-models=false
 `);
 }
 
@@ -344,6 +360,8 @@ export async function getExistingModelCosts() {
 
 export async function main() {
   const cliArgs = parseCliArgs(process.argv);
+  
+  const supportedModelsOnly = parseSupportedModelsFlag(cliArgs["supported-models"]);
 
   if (cliArgs.help) {
     showHelp();
@@ -431,7 +449,7 @@ export async function main() {
     const options = getModelOptions(displayName);
     const cost = getModelCost(displayName, existingCosts);
 
-    if (cliArgs["supported-models"]) {
+    if (supportedModelsOnly) {
       // With --supported-models, only include models defined in SUPPORTED_MODELS
       // Ignore existing costs from config
       const isSupported = isModelSupported(displayName);
@@ -452,7 +470,7 @@ export async function main() {
 
   if (skippedModels.length > 0) {
     console.error(
-      `Skipped ${skippedModels.length} models (tool use not supported): ${skippedModels.join(", ")}`
+      `Skipped ${skippedModels.length} models (tool usage not supported): ${skippedModels.join(", ")}`
     );
   }
 
@@ -463,7 +481,7 @@ export async function main() {
   }
 
   const modelNames = Object.keys(models);
-  const listTitle = cliArgs["supported-models"] 
+  const listTitle = supportedModelsOnly 
     ? `\nSupported models to be added (${modelNames.length}):\n`
     : `\nModels to be added (${modelNames.length}):\n`;
   console.error(listTitle);
@@ -516,7 +534,7 @@ export async function main() {
   }
 
   if (cliArgs["custom-costs"]) {
-    const updated = await configureCustomCosts(config, modelNames, "nexos-ai", cliArgs["supported-models"]);
+    const updated = await configureCustomCosts(config, modelNames, "nexos-ai", supportedModelsOnly);
     if (updated) {
       await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
       console.error("Model costs configuration updated.");

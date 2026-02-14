@@ -105,7 +105,7 @@ export function getModelLimit(displayName, apiModel = null) {
   const ctx = apiModel?.context_window || 128000;
   const out = apiModel?.max_output_tokens || 64000;
   console.error(
-    `Warning: no limit config for model "${displayName}", using defaults (context=${ctx}, output=${out})`
+    `Warning: no predefined limits for model "${displayName}", using defaults (context=${ctx}, output=${out})`
   );
   return { context: ctx, output: out };
 }
