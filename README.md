@@ -135,6 +135,17 @@ Custom pricing from your existing configuration is always preserved and takes pr
 | `--select-agents`, `-s` | Interactively select models for agents defined in config |
 | `--output`, `-o` | Write config to a custom file path instead of default |
 
+## Supported Models
+
+The tool automatically configures the following model families from Nexos AI:
+
+- **Claude models** (Anthropic) — Claude 3.5 Sonnet, Claude 3.7 Sonnet with thinking variants (low, high)
+- **GPT models** (OpenAI) — GPT-4.1, GPT-4o, GPT-5 series with reasoning variants (low, high)
+- **Gemini models** (Google) — Gemini 2.5 Flash, Gemini 2.5 Pro with thinking variants (low, high)
+- **Kimi models** (Moonshot AI) — Kimi K2.5
+
+Each model comes with pre-configured context limits, output limits, and pricing information.
+
 ## License
 
 MIT

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.0] - 2026-02-13
+
+### Added
+
+- Model configuration for **Kimi K2.5**
+  - Context limit: 256k tokens
+  - Output limit: 64k tokens
+  - Pricing: $0.6/M input tokens, $3.0/M output tokens, $0.1/M cache read tokens
+
 ## [1.7.0] - 2026-02-13
 
 ### Added

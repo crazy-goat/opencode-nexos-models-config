@@ -26,6 +26,7 @@ const modelLimitsOverrides = {
   "Gemini 2.5 Pro":          { context: 1048576, output: 65536 },
   "Gemini 2.5 Flash":        { context: 1048576, output: 65536 },
   "codestral-2508":           { context: 256000, output: 16384 },
+  "Kimi K2.5":                { context: 256000, output: 64000 },
 };
 
 const modelCostsDefaults = {
@@ -122,6 +123,11 @@ const modelCostsDefaults = {
     input: 0.3,
     output: 2.5,
     cache_read: 0.03,
+  },
+  "Kimi K2.5": {
+    input: 0.6,
+    output: 3.0,
+    cache_read: 0.1,
   },
 };
 
