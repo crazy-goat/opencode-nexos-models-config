@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.12.0] - 2026-02-15
+
+### Changed
+
+- **Dependencies**: Removed unused `@crazy-goat/nexos-provider` from dependencies
+  - Package was only used as string literal in generated config, never imported
+  - Reduces bundle size by ~16 packages
+
+### Fixed
+
+- **Tests**: Fixed integration tests for proper ESM support
+  - Replaced `jest.mock()` with `jest.unstable_mockModule()` 
+  - Added proper `jest` import from `@jest/globals`
+  - All 83 tests now passing
+
 ## [1.11.0] - 2026-02-14
 
 ### Added
