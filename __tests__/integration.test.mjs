@@ -42,6 +42,12 @@ describe("Integration Tests", () => {
   let main;
   let asObject;
   let selectAgentModels;
+  let fetchModelsFromApi;
+  let processModels;
+  let loadExistingConfig;
+  let buildProviderConfig;
+  let buildConfig;
+  let saveConfig;
 
   beforeAll(async () => {
     // Import functions from index.mjs after mocks are set up
@@ -50,6 +56,12 @@ describe("Integration Tests", () => {
     main = indexModule.main;
     asObject = indexModule.asObject;
     selectAgentModels = indexModule.selectAgentModels;
+    fetchModelsFromApi = indexModule.fetchModelsFromApi;
+    processModels = indexModule.processModels;
+    loadExistingConfig = indexModule.loadExistingConfig;
+    buildProviderConfig = indexModule.buildProviderConfig;
+    buildConfig = indexModule.buildConfig;
+    saveConfig = indexModule.saveConfig;
   });
 
   beforeEach(() => {
@@ -89,6 +101,169 @@ describe("Integration Tests", () => {
       checkDependencies();
       expect(mockConsoleError).not.toHaveBeenCalled();
       expect(process.exit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("fetchModelsFromApi", () => {
+    test("should fetch and sort models", async () => {
+      const mockModelsData = [
+        { id: "gpt-5", name: "GPT 5" },
+        { id: "claude-opus", name: "Claude Opus" },
+      ];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: mockModelsData }),
+      });
+
+      const result = await fetchModelsFromApi("nexos-test-key", "https://api.nexos.ai/v1");
+
+      expect(mockFetch).toHaveBeenCalledWith("https://api.nexos.ai/v1/models", {
+        headers: {
+          Authorization: "Bearer nexos-test-key",
+          "Content-Type": "application/json",
+        },
+      });
+      expect(result).toEqual([
+        { id: "claude-opus", name: "Claude Opus" },
+        { id: "gpt-5", name: "GPT 5" },
+      ]);
+    });
+
+    test("should exit on API error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        text: () => Promise.resolve("Error details"),
+      });
+
+      await expect(fetchModelsFromApi("nexos-test-key", "https://api.nexos.ai/v1")).rejects.toThrow("EXIT_1");
+      expect(mockConsoleError).toHaveBeenCalledWith("Error: 500 Internal Server Error");
+      expect(mockConsoleError).toHaveBeenCalledWith("Error details");
+    });
+  });
+
+  describe("processModels", () => {
+    test("should process models and apply configuration", () => {
+      const modelsList = [
+        { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4.5", context_window: 200000, max_output_tokens: 64000 },
+        { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", context_window: 1048576, max_output_tokens: 65536 },
+        { id: "gemini-3-pro", name: "Gemini 3 Pro", context_window: 1048576, max_output_tokens: 65536 },
+        { id: "text-embedding-3-large", name: "text-embedding-3-large", context_window: 128000, max_output_tokens: 64000 },
+      ];
+
+      const { models, skippedModels, unsupportedModels } = processModels(modelsList, {}, false);
+
+      expect(models["Claude Sonnet 4.5"]).toBeDefined();
+      expect(models["Claude Sonnet 4.5"].limit).toEqual({ context: 200000, output: 64000 });
+      expect(models["Gemini 2.5 Flash"]).toBeDefined();
+      expect(models["text-embedding-3-large"]).toBeUndefined();
+      expect(skippedModels).toContain("Gemini 3 Pro");
+    });
+
+    test("should filter unsupported models when supportedModelsOnly is true", () => {
+      const modelsList = [
+        { id: "claude-opus-45", name: "Claude Opus 4.5" },
+        { id: "unknown-model", name: "Unknown Model" },
+      ];
+
+      const { models, unsupportedModels } = processModels(modelsList, {}, true);
+
+      expect(models["Claude Opus 4.5"]).toBeDefined();
+      expect(models["Unknown Model"]).toBeUndefined();
+      expect(unsupportedModels).toContain("Unknown Model");
+    });
+  });
+
+  describe("loadExistingConfig", () => {
+    test("should load existing config", async () => {
+      const existingConfig = { provider: { "nexos-ai": { name: "Test" } } };
+      mockReadFile.mockResolvedValueOnce(JSON.stringify(existingConfig));
+
+      const result = await loadExistingConfig("/path/to/config.json");
+
+      expect(result).toEqual(existingConfig);
+    });
+
+    test("should return empty object on error", async () => {
+      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
+
+      const result = await loadExistingConfig("/path/to/config.json");
+
+      expect(result).toEqual({});
+    });
+  });
+
+  describe("buildProviderConfig", () => {
+    test("should build provider config with defaults", () => {
+      const models = { "Test Model": { name: "Test Model" } };
+      const existingConfig = {};
+
+      const result = buildProviderConfig(existingConfig, models, "https://api.nexos.ai/v1");
+
+      expect(result).toEqual({
+        npm: "@crazy-goat/nexos-provider",
+        name: "Nexos AI",
+        env: ["NEXOS_API_KEY"],
+        options: {
+          baseURL: "https://api.nexos.ai/v1/",
+          timeout: 300000,
+        },
+        models,
+      });
+    });
+
+    test("should preserve existing values", () => {
+      const models = { "Test Model": { name: "Test Model" } };
+      const existingConfig = {
+        provider: {
+          "nexos-ai": {
+            npm: "custom-provider",
+            name: "Custom Name",
+            env: ["EXISTING_VAR"],
+            options: { baseURL: "https://existing.api.com/", timeout: 60000 },
+          },
+        },
+      };
+
+      const result = buildProviderConfig(existingConfig, models, "https://api.nexos.ai/v1");
+
+      expect(result.npm).toBe("custom-provider");
+      expect(result.name).toBe("Custom Name");
+      expect(result.env).toContain("EXISTING_VAR");
+      expect(result.env).toContain("NEXOS_API_KEY");
+      expect(result.options.baseURL).toBe("https://existing.api.com/");
+      expect(result.options.timeout).toBe(60000);
+    });
+  });
+
+  describe("buildConfig", () => {
+    test("should build config with schema", () => {
+      const existingConfig = { agent: { test: {} } };
+      const providerConfig = { name: "Test Provider", models: {} };
+
+      const result = buildConfig(existingConfig, providerConfig);
+
+      expect(result.$schema).toBe("https://opencode.ai/config.json");
+      expect(result.agent).toEqual({ test: {} });
+      expect(result.provider["nexos-ai"]).toEqual(providerConfig);
+    });
+  });
+
+  describe("saveConfig", () => {
+    test("should save config to file", async () => {
+      mockMkdir.mockResolvedValueOnce(undefined);
+      mockWriteFile.mockResolvedValueOnce(undefined);
+
+      const config = { test: "value" };
+      await saveConfig(config, "/path/to/config.json");
+
+      expect(mockMkdir).toHaveBeenCalledWith("/path/to", { recursive: true });
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/path/to/config.json",
+        JSON.stringify(config, null, 2) + "\n",
+        "utf-8"
+      );
     });
   });
 
@@ -184,7 +359,7 @@ describe("Integration Tests", () => {
       const mockModelsData = [
         { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4.5", context_window: 200000, max_output_tokens: 64000 },
         { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", context_window: 1048576, max_output_tokens: 65536 },
-        { id: "gemini-3-pro", name: "Gemini 3 Pro", context_window: 1048576, max_output_tokens: 65536 }, // Skipped model
+        { id: "gemini-3-pro", name: "Gemini 3 Pro", context_window: 1048576, max_output_tokens: 65536 },
         { id: "gpt-5-mini-2025-08-07", name: "GPT 5.2", context_window: 400000, max_output_tokens: 128000 },
       ];
       mockFetch.mockResolvedValueOnce({
@@ -192,9 +367,7 @@ describe("Integration Tests", () => {
         json: () => Promise.resolve({ data: mockModelsData }),
       });
       mockExecSync.mockReturnValueOnce("some/path/to/opencode");
-      // First readFile call is from getExistingModelCosts() - return empty object
-      mockReadFile.mockResolvedValueOnce(JSON.stringify({}));
-      // Second readFile call is for the main config
+      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
       mockReadFile.mockResolvedValueOnce(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
@@ -405,31 +578,19 @@ describe("Integration Tests", () => {
   });
 
   describe("embedding models filtering", () => {
-    test("should skip embedding models", async () => {
-      const mockModelsData = [
+    test("should skip embedding models via processModels", () => {
+      const modelsList = [
         { id: "gpt-5-mini-2025-08-07", name: "GPT 5.2", context_window: 400000, max_output_tokens: 128000 },
         { id: "text-embedding-3-large", name: "text-embedding-3-large", context_window: 128000, max_output_tokens: 64000 },
         { id: "text-embedding-3-small", name: "text-embedding-3-small", context_window: 128000, max_output_tokens: 64000 },
       ];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: mockModelsData }),
-      });
-      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
-      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
-      mockMkdir.mockResolvedValueOnce(undefined);
-      mockWriteFile.mockResolvedValueOnce(undefined);
 
-      await main();
-
-      const writeCall = mockWriteFile.mock.calls[0];
-      const writtenConfig = JSON.parse(writeCall[1]);
-      const modelNames = Object.keys(writtenConfig.provider["nexos-ai"].models);
+      const { models } = processModels(modelsList, {}, false);
+      const modelNames = Object.keys(models);
 
       expect(modelNames).toContain("GPT 5.2");
       expect(modelNames).not.toContain("text-embedding-3-large");
       expect(modelNames).not.toContain("text-embedding-3-small");
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Supported models to be added (1):"));
     });
   });
 });

@@ -1,8 +1,6 @@
 import {
   uniqueStrings,
   getDisplayName,
-  getContextWindow,
-  getMaxOutputTokens,
   parseCliArgs,
   configureCustomCosts,
   parseSupportedModelsFlag,
@@ -68,30 +66,6 @@ describe("Helper Functions", () => {
     test("should return id if name is not available", () => {
       const model = { id: "test-model-id" };
       expect(getDisplayName(model)).toBe("test-model-id");
-    });
-  });
-
-  describe("getContextWindow", () => {
-    test("should return context_window if available", () => {
-      const model = { context_window: 200000 };
-      expect(getContextWindow(model)).toBe(200000);
-    });
-
-    test("should return default value if context_window is not available", () => {
-      const model = {};
-      expect(getContextWindow(model)).toBe(128000);
-    });
-  });
-
-  describe("getMaxOutputTokens", () => {
-    test("should return max_output_tokens if available", () => {
-      const model = { max_output_tokens: 64000 };
-      expect(getMaxOutputTokens(model)).toBe(64000);
-    });
-
-    test("should return default value if max_output_tokens is not available", () => {
-      const model = {};
-      expect(getMaxOutputTokens(model)).toBe(64000);
     });
   });
 

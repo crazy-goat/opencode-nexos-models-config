@@ -32,14 +32,6 @@ export function getDisplayName(model) {
   return model.name || model.id;
 }
 
-export function getContextWindow(model) {
-  return model.context_window || 128000;
-}
-
-export function getMaxOutputTokens(model) {
-  return model.max_output_tokens || 64000;
-}
-
 export function checkDependencies() {
   try {
     execSync("which opencode", { stdio: "ignore" });
@@ -358,6 +350,115 @@ export async function getExistingModelCosts() {
   }
 }
 
+export async function fetchModelsFromApi(apiKey, apiBaseURL) {
+  const res = await fetch(`${apiBaseURL}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    console.error(`Error: ${res.status} ${res.statusText}`);
+    const body = await res.text();
+    if (body) console.error(body);
+    process.exit(1);
+  }
+
+  const data = await res.json();
+  return (data.data || []).sort((a, b) =>
+    getDisplayName(a).toLowerCase().localeCompare(getDisplayName(b).toLowerCase())
+  );
+}
+
+export function processModels(modelsList, existingCosts, supportedModelsOnly) {
+  const models = {};
+  const skippedModels = [];
+  const unsupportedModels = [];
+
+  for (const model of modelsList) {
+    if ((model.name || "").includes("(No PII)")) continue;
+
+    const displayName = getDisplayName(model);
+
+    if (displayName.toLowerCase().includes("embedding")) continue;
+
+    if (isSkippedModel(displayName)) {
+      skippedModels.push(displayName);
+      continue;
+    }
+
+    const limit = getModelLimit(displayName, model);
+    const variants = getModelVariants(displayName);
+    const options = getModelOptions(displayName);
+    const cost = getModelCost(displayName, existingCosts);
+
+    if (supportedModelsOnly) {
+      const isSupported = isModelSupported(displayName);
+      if (!isSupported) {
+        unsupportedModels.push(displayName);
+        continue;
+      }
+    }
+
+    models[displayName] = {
+      name: displayName,
+      limit,
+      ...(options ? { options } : {}),
+      ...(variants ? { variants } : {}),
+      ...(cost ? { cost } : {}),
+    };
+  }
+
+  return { models, skippedModels, unsupportedModels };
+}
+
+export async function loadExistingConfig(configPath) {
+  try {
+    const raw = await readFile(configPath, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export function buildProviderConfig(existingConfig, models, apiBaseURL) {
+  const existingProvider = asObject(existingConfig.provider?.["nexos-ai"]);
+  const existingEnv = uniqueStrings(existingProvider?.env);
+
+  return {
+    npm: existingProvider?.npm || "@crazy-goat/nexos-provider",
+    name: existingProvider?.name || "Nexos AI",
+    env: uniqueStrings(["NEXOS_API_KEY", ...existingEnv]),
+    options: {
+      ...asObject(existingProvider?.options),
+      baseURL: existingProvider?.options?.baseURL || `${apiBaseURL}/`,
+      timeout: existingProvider?.options?.timeout ?? 300000,
+    },
+    models,
+  };
+}
+
+export function buildConfig(existingConfig, providerConfig) {
+  return {
+    $schema: "https://opencode.ai/config.json",
+    ...existingConfig,
+    provider: {
+      ...existingConfig.provider,
+      "nexos-ai": providerConfig,
+    },
+  };
+}
+
+export function serializeConfig(config) {
+  return JSON.stringify(config, null, 2) + "\n";
+}
+
+export async function saveConfig(config, configPath) {
+  await mkdir(dirname(configPath), { recursive: true });
+  await writeFile(configPath, serializeConfig(config), "utf-8");
+}
+
 export async function main() {
   const cliArgs = parseCliArgs(process.argv);
   
@@ -401,24 +502,7 @@ export async function main() {
 
   console.error("Fetching models from Nexos AI API...");
 
-  const res = await fetch(`${apiBaseURL}/models`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    console.error(`Error: ${res.status} ${res.statusText}`);
-    const body = await res.text();
-    if (body) console.error(body);
-    process.exit(1);
-  }
-
-  const data = await res.json();
-  const modelsList = (data.data || []).sort((a, b) =>
-    getDisplayName(a).toLowerCase().localeCompare(getDisplayName(b).toLowerCase())
-  );
+  const modelsList = await fetchModelsFromApi(apiKey, apiBaseURL);
 
   if (modelsList.length === 0) {
     console.log("No models found.");
@@ -428,45 +512,11 @@ export async function main() {
   // Load existing model costs
   const existingCosts = await getExistingModelCosts();
 
-  const models = {};
-  const skippedModels = [];
-  const unsupportedModels = [];
-
-  for (const model of modelsList) {
-    if ((model.name || "").includes("(No PII)")) continue;
-
-    const displayName = getDisplayName(model);
-
-    if (displayName.toLowerCase().includes("embedding")) continue;
-
-    if (isSkippedModel(displayName)) {
-      skippedModels.push(displayName);
-      continue;
-    }
-
-    const limit = getModelLimit(displayName, model);
-    const variants = getModelVariants(displayName);
-    const options = getModelOptions(displayName);
-    const cost = getModelCost(displayName, existingCosts);
-
-    if (supportedModelsOnly) {
-      // With --supported-models, only include models defined in SUPPORTED_MODELS
-      // Ignore existing costs from config
-      const isSupported = isModelSupported(displayName);
-      if (!isSupported) {
-        unsupportedModels.push(displayName);
-        continue;
-      }
-    }
-
-    models[displayName] = {
-      name: displayName,
-      limit,
-      ...(options ? { options } : {}),
-      ...(variants ? { variants } : {}),
-      ...(cost ? { cost } : {}),
-    };
-  }
+  const { models, skippedModels, unsupportedModels } = processModels(
+    modelsList,
+    existingCosts,
+    supportedModelsOnly
+  );
 
   if (skippedModels.length > 0) {
     console.error(
@@ -490,37 +540,12 @@ export async function main() {
   }
 
   const configPath = cliArgs.output || join(homedir(), ".config", "opencode", "opencode.json");
+  const existingConfig = await loadExistingConfig(configPath);
+  
+  const providerConfig = buildProviderConfig(existingConfig, models, apiBaseURL);
+  const config = buildConfig(existingConfig, providerConfig);
 
-  let config = {};
-  try {
-    const raw = await readFile(configPath, "utf-8");
-    config = JSON.parse(raw);
-  } catch {
-    config = {};
-  }
-
-  config.$schema = "https://opencode.ai/config.json";
-  if (!config.provider) config.provider = {};
-
-  const existingProvider = asObject(config.provider["nexos-ai"]);
-  const existingModels = asObject(existingProvider?.models);
-  const existingEnv = uniqueStrings(existingProvider?.env);
-
-  config.provider["nexos-ai"] = {
-    ...existingProvider,
-    npm: existingProvider?.npm || "@crazy-goat/nexos-provider",
-    name: existingProvider?.name || "Nexos AI",
-    env: uniqueStrings(["NEXOS_API_KEY", ...existingEnv]),
-    options: {
-      ...asObject(existingProvider?.options),
-      baseURL: existingProvider?.options?.baseURL || `${apiBaseURL}/`,
-      timeout: existingProvider?.options?.timeout ?? 300000,
-    },
-    models: models,
-  };
-
-  await mkdir(dirname(configPath), { recursive: true });
-  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  await saveConfig(config, configPath);
 
   console.error(`\nGenerated configuration for ${Object.keys(models).length} models`);
   console.error(`Config written to: ${configPath}`);

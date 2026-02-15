@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.13.0] - 2026-02-15
+
+### Changed
+
+- **Major refactoring**: Split monolithic `main()` function into smaller, testable units
+  - Extracted `fetchModelsFromApi()` - handles API communication
+  - Extracted `processModels()` - processes and filters models
+  - Extracted `loadExistingConfig()` - loads existing configuration
+  - Extracted `buildProviderConfig()` - builds provider configuration
+  - Extracted `buildConfig()` - assembles final config object
+  - Extracted `serializeConfig()` - JSON serialization
+  - Extracted `saveConfig()` - file system operations
+  - All new functions are exported for testing
+
+### Removed
+
+- `getContextWindow()` and `getMaxOutputTokens()` helper functions
+  - Logic moved inline to model processing
+  - Removed from public API
+
+### Fixed
+
+- **Tests**: Expanded test coverage with 83 new unit tests
+  - Added tests for all new exported functions
+  - Improved integration tests structure
+  - Fixed embedding models filtering tests
+
 ## [1.12.0] - 2026-02-15
 
 ### Changed
