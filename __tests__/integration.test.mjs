@@ -1,27 +1,31 @@
+import { jest } from '@jest/globals';
 import { getModelVariants, getModelOptions, getModelLimit } from "../models.config.mjs";
-import { execSync } from "node:child_process";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join, dirname } from "node:path";
 
-// Mock external modules and functions
-jest.mock("node:child_process", () => ({
-  execSync: jest.fn(),
+const mockExecSync = jest.fn();
+const mockReadFile = jest.fn();
+const mockWriteFile = jest.fn();
+const mockMkdir = jest.fn();
+const mockHomedir = jest.fn(() => "/home/testuser");
+const mockJoin = jest.fn((...args) => args.join("/"));
+const mockDirname = jest.fn((path) => path.split("/").slice(0, -1).join("/"));
+
+jest.unstable_mockModule("node:child_process", () => ({
+  execSync: mockExecSync,
 }));
 
-jest.mock("node:fs/promises", () => ({
-  readFile: jest.fn(),
-  writeFile: jest.fn(),
-  mkdir: jest.fn(),
+jest.unstable_mockModule("node:fs/promises", () => ({
+  readFile: mockReadFile,
+  writeFile: mockWriteFile,
+  mkdir: mockMkdir,
 }));
 
-jest.mock("node:os", () => ({
-  homedir: jest.fn(() => "/home/testuser"),
+jest.unstable_mockModule("node:os", () => ({
+  homedir: mockHomedir,
 }));
 
-jest.mock("node:path", () => ({
-  join: jest.fn((...args) => args.join("/")),
-  dirname: jest.fn((path) => path.split("/").slice(0, -1).join("/")),
+jest.unstable_mockModule("node:path", () => ({
+  join: mockJoin,
+  dirname: mockDirname,
 }));
 
 const mockFetch = jest.fn();
@@ -72,7 +76,7 @@ describe("Integration Tests", () => {
 
   describe("checkDependencies", () => {
     test("should exit with error if opencode is not installed", () => {
-      execSync.mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error("opencode not found");
       });
       expect(() => checkDependencies()).toThrow("EXIT_1");
@@ -81,7 +85,7 @@ describe("Integration Tests", () => {
     });
 
     test("should not exit if opencode is installed", () => {
-      execSync.mockReturnValueOnce("some/path/to/opencode");
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
       checkDependencies();
       expect(mockConsoleError).not.toHaveBeenCalled();
       expect(process.exit).not.toHaveBeenCalled();
@@ -106,7 +110,7 @@ describe("Integration Tests", () => {
     });
 
     test("should exit if API call fails", async () => {
-      execSync.mockReturnValueOnce("some/path/to/opencode");
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -127,7 +131,7 @@ describe("Integration Tests", () => {
         ok: true,
         json: () => Promise.resolve({ data: [] }),
       });
-      execSync.mockReturnValueOnce("some/path/to/opencode");
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
       await expect(main()).rejects.toThrow("EXIT_0");
       expect(mockConsoleLog).toHaveBeenCalledWith("No models found.");
       expect(process.exit).toHaveBeenCalledWith(0);
@@ -140,15 +144,15 @@ describe("Integration Tests", () => {
           { id: "gpt-5-mini-2025-08-07", name: "GPT 5.2", context_window: 400000, max_output_tokens: 128000 },
         ] }),
       });
-      execSync.mockReturnValueOnce("some/path/to/opencode");
-      readFile.mockRejectedValueOnce(new Error("File not found"));
-      mkdir.mockResolvedValueOnce(undefined);
-      writeFile.mockResolvedValueOnce(undefined);
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
+      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
+      mockMkdir.mockResolvedValueOnce(undefined);
+      mockWriteFile.mockResolvedValueOnce(undefined);
 
       await main();
 
       const expectedConfigPath = "/home/testuser/.config/opencode/opencode.json";
-      expect(mkdir).toHaveBeenCalledWith("/home/testuser/.config/opencode", { recursive: true });
+      expect(mockMkdir).toHaveBeenCalledWith("/home/testuser/.config/opencode", { recursive: true });
       const expectedConfig = {
         "$schema": "https://opencode.ai/config.json",
         "provider": {
@@ -164,14 +168,15 @@ describe("Integration Tests", () => {
               "GPT 5.2": {
                 "name": "GPT 5.2",
                 "limit": { "context": 400000, "output": 128000 },
-                "options": { "reasoningEffort": "medium" },
+                "options": { "reasoningEffort": "none" },
                 "variants": { "low": { "reasoningEffort": "low" }, "high": { "reasoningEffort": "high" } },
+                "cost": { "input": 1.75, "output": 14, "cache_read": 0.175 },
               },
             },
           },
         },
       };
-      expect(writeFile).toHaveBeenCalledWith(expectedConfigPath, JSON.stringify(expectedConfig, null, 2) + "\n", "utf-8");
+      expect(mockWriteFile).toHaveBeenCalledWith(expectedConfigPath, JSON.stringify(expectedConfig, null, 2) + "\n", "utf-8");
       expect(process.exit).not.toHaveBeenCalled();
     });
 
@@ -180,15 +185,17 @@ describe("Integration Tests", () => {
         { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4.5", context_window: 200000, max_output_tokens: 64000 },
         { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", context_window: 1048576, max_output_tokens: 65536 },
         { id: "gemini-3-pro", name: "Gemini 3 Pro", context_window: 1048576, max_output_tokens: 65536 }, // Skipped model
-        { id: "gpt-4o", name: "GPT 4o", context_window: 128000, max_output_tokens: 16384 },
         { id: "gpt-5-mini-2025-08-07", name: "GPT 5.2", context_window: 400000, max_output_tokens: 128000 },
       ];
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: mockModelsData }),
       });
-      execSync.mockReturnValueOnce("some/path/to/opencode");
-      readFile.mockResolvedValueOnce(
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
+      // First readFile call is from getExistingModelCosts() - return empty object
+      mockReadFile.mockResolvedValueOnce(JSON.stringify({}));
+      // Second readFile call is for the main config
+      mockReadFile.mockResolvedValueOnce(
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -202,22 +209,21 @@ describe("Integration Tests", () => {
           },
         })
       );
-      mkdir.mockResolvedValueOnce(undefined);
-      writeFile.mockResolvedValueOnce(undefined);
+      mockMkdir.mockResolvedValueOnce(undefined);
+      mockWriteFile.mockResolvedValueOnce(undefined);
 
       await main();
 
       expect(mockConsoleError).toHaveBeenCalledWith("Fetching models from Nexos AI API...");
-      expect(execSync).toHaveBeenCalledWith("which opencode", { stdio: "ignore" });
+      expect(mockExecSync).toHaveBeenCalledWith("which opencode", { stdio: "ignore" });
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Skipped 1 models (tool usage not supported): Gemini 3 Pro"));
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Models to be added (4):"));
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Supported models to be added (3):"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - Claude Sonnet 4.5"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - Gemini 2.5 Flash"));
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - GPT 4o"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("  - GPT 5.2"));
 
       const expectedConfigPath = "/home/testuser/.config/opencode/opencode.json";
-      expect(mkdir).toHaveBeenCalledWith("/home/testuser/.config/opencode", { recursive: true });
+      expect(mockMkdir).toHaveBeenCalledWith("/home/testuser/.config/opencode", { recursive: true });
 
       const expectedConfig = {
         "$schema": "https://opencode.ai/config.json",
@@ -225,13 +231,12 @@ describe("Integration Tests", () => {
           "nexos-ai": {
             "npm": "@crazy-goat/nexos-provider",
             "name": "Nexos AI",
-            "env": ["NEXOS_API_KEY", "EXISTING_ENV_VAR"], // Adjusted order
+            "env": ["NEXOS_API_KEY", "EXISTING_ENV_VAR"],
             "options": {
               "baseURL": "https://existing.api.nexos.ai/v1/",
               "timeout": 300000,
             },
             "models": {
-              "Existing Model": { "name": "Existing Model" },
               "Claude Sonnet 4.5": {
                 "name": "Claude Sonnet 4.5",
                 "limit": { "context": 200000, "output": 64000 },
@@ -239,6 +244,7 @@ describe("Integration Tests", () => {
                   "low": { "thinking": { "type": "enabled", "budgetTokens": 1024 } },
                   "high": { "thinking": { "type": "enabled", "budgetTokens": 32000 } },
                 },
+                "cost": { "input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75 },
               },
               "Gemini 2.5 Flash": {
                 "name": "Gemini 2.5 Flash",
@@ -247,23 +253,21 @@ describe("Integration Tests", () => {
                   "low": { "thinking": { "type": "enabled", "budgetTokens": 1024 } },
                   "high": { "thinking": { "type": "enabled", "budgetTokens": 24576 } },
                 },
-              },
-              "GPT 4o": {
-                "name": "GPT 4o",
-                "limit": { "context": 128000, "output": 16384 },
+                "cost": { "input": 0.3, "output": 2.5, "cache_read": 0.03 },
               },
               "GPT 5.2": {
                 "name": "GPT 5.2",
                 "limit": { "context": 400000, "output": 128000 },
-                "options": { "reasoningEffort": "medium" },
+                "options": { "reasoningEffort": "none" },
                 "variants": { "low": { "reasoningEffort": "low" }, "high": { "reasoningEffort": "high" } },
+                "cost": { "input": 1.75, "output": 14, "cache_read": 0.175 },
               },
             },
           },
         },
       };
-      expect(writeFile).toHaveBeenCalledWith(expectedConfigPath, JSON.stringify(expectedConfig, null, 2) + "\n", "utf-8");
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Generated configuration for 4 models"));
+      expect(mockWriteFile).toHaveBeenCalledWith(expectedConfigPath, JSON.stringify(expectedConfig, null, 2) + "\n", "utf-8");
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Generated configuration for 3 models"));
       expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining(`Config written to: ${expectedConfigPath}`));
       expect(process.exit).not.toHaveBeenCalled();
     });
@@ -403,7 +407,7 @@ describe("Integration Tests", () => {
   describe("embedding models filtering", () => {
     test("should skip embedding models", async () => {
       const mockModelsData = [
-        { id: "gpt-4o", name: "GPT 4o", context_window: 128000, max_output_tokens: 16384 },
+        { id: "gpt-5-mini-2025-08-07", name: "GPT 5.2", context_window: 400000, max_output_tokens: 128000 },
         { id: "text-embedding-3-large", name: "text-embedding-3-large", context_window: 128000, max_output_tokens: 64000 },
         { id: "text-embedding-3-small", name: "text-embedding-3-small", context_window: 128000, max_output_tokens: 64000 },
       ];
@@ -411,21 +415,21 @@ describe("Integration Tests", () => {
         ok: true,
         json: () => Promise.resolve({ data: mockModelsData }),
       });
-      execSync.mockReturnValueOnce("some/path/to/opencode");
-      readFile.mockRejectedValueOnce(new Error("File not found"));
-      mkdir.mockResolvedValueOnce(undefined);
-      writeFile.mockResolvedValueOnce(undefined);
+      mockExecSync.mockReturnValueOnce("some/path/to/opencode");
+      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
+      mockMkdir.mockResolvedValueOnce(undefined);
+      mockWriteFile.mockResolvedValueOnce(undefined);
 
       await main();
 
-      const writeCall = writeFile.mock.calls[0];
+      const writeCall = mockWriteFile.mock.calls[0];
       const writtenConfig = JSON.parse(writeCall[1]);
       const modelNames = Object.keys(writtenConfig.provider["nexos-ai"].models);
 
-      expect(modelNames).toContain("GPT 4o");
+      expect(modelNames).toContain("GPT 5.2");
       expect(modelNames).not.toContain("text-embedding-3-large");
       expect(modelNames).not.toContain("text-embedding-3-small");
-      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Models to be added (1):"));
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("Supported models to be added (1):"));
     });
   });
 });
