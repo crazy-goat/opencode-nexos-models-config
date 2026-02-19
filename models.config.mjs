@@ -4,7 +4,7 @@ export const SUPPORTED_MODELS = {
   // Anthropic Claude models - all share the same variants
   "Claude Opus 4.5": {
     limit: { context: 200000, output: 64000 },
-    cost: { input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 },
+    cost: { input: 5.5, output: 27.5, cache_read: 0.55, cache_write: 6.75 },
     variants: {
       low: { thinking: { type: "enabled", budgetTokens: 1024 } },
       high: { thinking: { type: "enabled", budgetTokens: 32000 } },
@@ -12,7 +12,7 @@ export const SUPPORTED_MODELS = {
   },
   "Claude Opus 4.6": {
     limit: { context: 200000, output: 128000 },
-    cost: { input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 },
+    cost: { input: 5.5, output: 27.5, cache_read: 0.55, cache_write: 6.75 },
     variants: {
       low: { thinking: { type: "enabled", budgetTokens: 1024 } },
       high: { thinking: { type: "enabled", budgetTokens: 32000 } },
@@ -20,7 +20,7 @@ export const SUPPORTED_MODELS = {
   },
   "Claude Sonnet 4.5": {
     limit: { context: 200000, output: 64000 },
-    cost: { input: 3, output: 15, cache_read: 0.3, cache_write: 3.75 },
+    cost: { input: 3.3, output: 16.5, cache_read: 0.33, cache_write: 4.13 },
     variants: {
       low: { thinking: { type: "enabled", budgetTokens: 1024 } },
       high: { thinking: { type: "enabled", budgetTokens: 32000 } },

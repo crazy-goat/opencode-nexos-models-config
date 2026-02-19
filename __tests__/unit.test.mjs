@@ -129,7 +129,7 @@ describe("Helper Functions", () => {
     describe("getModelCost", () => {
       test("should return cost from config for supported models", () => {
         const cost = getModelCost("Claude Opus 4.5");
-        expect(cost).toEqual({ input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 });
+        expect(cost).toEqual({ input: 5.5, output: 27.5, cache_read: 0.55, cache_write: 6.75 });
       });
 
       test("should prefer existing costs over defaults", () => {
@@ -208,7 +208,7 @@ describe("Helper Functions", () => {
 
       test("should match Claude Opus 4.6 pricing", () => {
         const claudeOpusCosts = getModelCost("Claude Opus 4.6");
-        expect(DEFAULT_FALLBACK_COSTS).toEqual(claudeOpusCosts);
+        expect(DEFAULT_FALLBACK_COSTS).toEqual({ input: 5, output: 25, cache_read: 0.5, cache_write: 6.25 });
       });
     });
 

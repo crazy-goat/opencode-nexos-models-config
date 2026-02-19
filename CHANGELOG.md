@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0] - 2026-02-19
+
+### Changed
+
+- **Pricing**: Updated Anthropic Claude models pricing (Opus 4.5, Opus 4.6, Sonnet 4.5) to reflect recent API changes
+- **Tests**: Updated unit and integration tests to match new pricing data
+
 ## [1.13.0] - 2026-02-15
 
 ### Changed

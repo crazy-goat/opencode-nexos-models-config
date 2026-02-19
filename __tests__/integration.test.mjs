@@ -417,7 +417,7 @@ describe("Integration Tests", () => {
                   "low": { "thinking": { "type": "enabled", "budgetTokens": 1024 } },
                   "high": { "thinking": { "type": "enabled", "budgetTokens": 32000 } },
                 },
-                "cost": { "input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75 },
+                "cost": { "input": 3.3, "output": 16.5, "cache_read": 0.33, "cache_write": 4.13 },
               },
               "Gemini 2.5 Flash": {
                 "name": "Gemini 2.5 Flash",
