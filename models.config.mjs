@@ -26,6 +26,14 @@ export const SUPPORTED_MODELS = {
       high: { thinking: { type: "enabled", budgetTokens: 32000 } },
     },
   },
+  "Claude Sonnet 4.6": {
+    limit: { context: 200000, output: 64000 },
+    cost: { input: 3.3, output: 16.5, cache_read: 0.33, cache_write: 4.13 },
+    variants: {
+      low: { thinking: { type: "enabled", budgetTokens: 1024 } },
+      high: { thinking: { type: "enabled", budgetTokens: 32000 } },
+    },
+  },
   
   // OpenAI GPT models with reasoning
   "GPT 5.2": {
@@ -143,6 +151,7 @@ export function getModelOptions(displayName) {
 }
 
 export function isSkippedModel(displayName) {
+  if (displayName in SUPPORTED_MODELS) return false;
   return skippedModelPrefixes.some((prefix) => displayName.startsWith(prefix));
 }
 

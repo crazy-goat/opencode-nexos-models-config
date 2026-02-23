@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.15.0] - 2026-02-23
+
+### Added
+
+- Model configuration for **Claude Sonnet 4.6**
+  - Context limit: 200k tokens
+  - Output limit: 64k tokens
+  - Pricing: $3.3/M input tokens, $16.5/M output tokens, $0.33/M cache read tokens, $4.13/M cache write tokens
+  - Variants: low (1024 tokens), high (32000 tokens)
+
+### Removed
+
+- Removed **Gemini 3.1 Pro Preview** from `SUPPORTED_MODELS` — model is skipped via `skippedModelPrefixes` (tool usage not supported)
+
 ## [1.14.0] - 2026-02-19
 
 ### Changed

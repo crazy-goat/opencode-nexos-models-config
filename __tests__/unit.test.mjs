@@ -73,6 +73,7 @@ describe("Helper Functions", () => {
     test("should return true if model display name starts with a skipped prefix", () => {
       expect(isSkippedModel("Gemini 3 Pro")).toBe(true);
       expect(isSkippedModel("Gemini 3.1 Flash")).toBe(true);
+      expect(isSkippedModel("Gemini 3.1 Pro Preview")).toBe(true);
     });
 
     test("should return false if model display name does not start with a skipped prefix", () => {
