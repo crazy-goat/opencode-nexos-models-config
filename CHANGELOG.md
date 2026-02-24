@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.16.0] - 2026-02-24
+
+### Added
+
+- Default `temperature` values for built-in agents applied automatically via `AGENT_DEFAULTS`
+  - `build`: `0.2` — focused code generation
+  - `build-fast`: `0.2` — focused code generation
+  - `build-heavy`: `0.1` — maximum determinism for complex engineering tasks
+  - `plan`: `0.3` — analytical planning without unnecessary creativity
+
 ## [1.15.0] - 2026-02-23
 
 ### Added

@@ -107,7 +107,17 @@ export async function showVersion() {
 const DEFAULT_AGENTS = ["build", "build-fast", "build-heavy", "plan"];
 
 const AGENT_DEFAULTS = {
+  build: {
+    temperature: 0.2,
+  },
+  "build-fast": {
+    temperature: 0.2,
+  },
+  "build-heavy": {
+    temperature: 0.1,
+  },
   plan: {
+    temperature: 0.3,
     description: "Read-only planning agent with bash access",
     permission: {
       edit: "deny",
@@ -176,6 +186,9 @@ export async function selectAgentModels(config, modelNames, providerName, prompt
     const agentConfig = config.agent[agentName];
     if (AGENT_DEFAULTS[agentName]) {
       const defaults = AGENT_DEFAULTS[agentName];
+      if (defaults.temperature !== undefined && agentConfig.temperature === undefined) {
+        agentConfig.temperature = defaults.temperature;
+      }
       if (defaults.description && !agentConfig.description) {
         agentConfig.description = defaults.description;
       }
