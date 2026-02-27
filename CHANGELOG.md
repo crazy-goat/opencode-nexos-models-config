@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.16.1] - 2026-02-27
+
+### Added
+
+- Model configuration for **GPT 5.3 Codex**
+  - Context limit: 400k tokens
+  - Output limit: 128k tokens
+  - Pricing: $1.75/M input tokens, $14.0/M output tokens, $0.175/M cache read tokens
+  - Variants: low, high
+
 ## [1.16.0] - 2026-02-24
 
 ### Added

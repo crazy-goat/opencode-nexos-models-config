@@ -54,6 +54,15 @@ export const SUPPORTED_MODELS = {
     },
     options: { reasoningEffort: "none" },
   },
+  "GPT 5.3 Codex": {
+    limit: { context: 400000, output: 128000 },
+    cost: { input: 1.75, output: 14.0, cache_read: 0.175 },
+    variants: {
+      low: { reasoningEffort: "low" },
+      high: { reasoningEffort: "high" },
+    },
+    options: { reasoningEffort: "none" },
+  },
   
   // Google Gemini models
   "Gemini 2.5 Pro": {
