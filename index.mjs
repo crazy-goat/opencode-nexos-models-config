@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { parseArgs } from "node:util";
+import readline from "node:readline";
 import {
   getModelVariants,
   getModelOptions,
@@ -13,6 +14,59 @@ import {
   getModelCost,
   isModelSupported,
 } from "./models.config.mjs";
+
+export async function temperatureSlider(message, defaultValue = 0.2) {
+  return new Promise((resolve) => {
+    let value = Math.round(defaultValue * 10) / 10;
+    const min = 0;
+    const max = 1;
+    const step = 0.1;
+
+    const render = () => {
+      const filled = Math.round(value * 10);
+      const empty = 10 - filled;
+      const bar = "█".repeat(filled) + "░".repeat(empty);
+      const line = `${message} Deterministic [${bar}] ${value.toFixed(1)} Creative`;
+      readline.cursorTo(process.stdout, 0);
+      process.stdout.write(line);
+      // Clear any remaining characters from previous render
+      process.stdout.write(" ".repeat(Math.max(0, 80 - line.length)));
+      readline.cursorTo(process.stdout, 0);
+    };
+
+    const cleanup = () => {
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdout.write("\n");
+    };
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on("data", (key) => {
+      const keyCode = key.toString();
+
+      if (keyCode === "\u001B[C") {
+        // right arrow
+        value = Math.round(Math.min(max, value + step) * 10) / 10;
+        render();
+      } else if (keyCode === "\u001B[D") {
+        // left arrow
+        value = Math.round(Math.max(min, value - step) * 10) / 10;
+        render();
+      } else if (keyCode === "\r" || keyCode === "\n") {
+        // enter
+        cleanup();
+        resolve(value);
+      } else if (keyCode === "\u0003") {
+        // ctrl+c
+        cleanup();
+        process.exit();
+      }
+    });
+
+    render();
+  });
+}
 
 export function asObject(value) {
   return value && typeof value === "object" ? value : undefined;
@@ -104,7 +158,7 @@ export async function showVersion() {
   console.log(packageJson.version);
 }
 
-const DEFAULT_AGENTS = ["build", "build-fast", "build-heavy", "plan"];
+const DEFAULT_AGENTS = ["build", "build-fast", "build-heavy", "plan", "creative"];
 
 const AGENT_DEFAULTS = {
   build: {
@@ -129,10 +183,15 @@ const AGENT_DEFAULTS = {
       webfetch: "allow",
     },
   },
+  creative: {
+    temperature: 0.7,
+    description: "Creative agent for brainstorming and innovative solutions",
+  },
 };
 
-export async function selectAgentModels(config, modelNames, providerName, prompts = null) {
+export async function selectAgentModels(config, modelNames, providerName, prompts = null, sliderFn = null) {
   const { search, checkbox } = prompts || await import("@inquirer/prompts");
+  const tempSlider = sliderFn || temperatureSlider;
 
   if (!config.agent || typeof config.agent !== "object") {
     config.agent = {};
@@ -211,6 +270,13 @@ export async function selectAgentModels(config, modelNames, providerName, prompt
     });
 
     config.agent[agentName].model = selected;
+
+    // Ask for temperature using interactive slider
+    const currentTemp = agentConfig.temperature ?? AGENT_DEFAULTS[agentName]?.temperature ?? 0.2;
+    console.error(`\n  Use ← → arrows to adjust, Enter to confirm`);
+    const selectedTemp = await tempSlider(`  Temperature for ${agentName}:`, currentTemp);
+
+    config.agent[agentName].temperature = selectedTemp;
   }
   return true;
 }
@@ -417,6 +483,7 @@ export function processModels(modelsList, existingCosts, supportedModelsOnly) {
     models[displayName] = {
       name: displayName,
       limit,
+      temperature: true,
       ...(options ? { options } : {}),
       ...(variants ? { variants } : {}),
       ...(cost ? { cost } : {}),

@@ -343,6 +343,7 @@ describe("Integration Tests", () => {
               "GPT 5.2": {
                 "name": "GPT 5.2",
                 "limit": { "context": 400000, "output": 128000 },
+                "temperature": true,
                 "options": { "reasoningEffort": "none" },
                 "variants": { "low": { "reasoningEffort": "low" }, "high": { "reasoningEffort": "high" } },
                 "cost": { "input": 1.75, "output": 14, "cache_read": 0.175 },
@@ -413,6 +414,7 @@ describe("Integration Tests", () => {
               "Claude Sonnet 4.5": {
                 "name": "Claude Sonnet 4.5",
                 "limit": { "context": 200000, "output": 64000 },
+                "temperature": true,
                 "variants": {
                   "low": { "thinking": { "type": "enabled", "budgetTokens": 1024 } },
                   "high": { "thinking": { "type": "enabled", "budgetTokens": 32000 } },
@@ -422,6 +424,7 @@ describe("Integration Tests", () => {
               "Gemini 2.5 Flash": {
                 "name": "Gemini 2.5 Flash",
                 "limit": { "context": 1048576, "output": 65536 },
+                "temperature": true,
                 "variants": {
                   "low": { "thinking": { "type": "enabled", "budgetTokens": 1024 } },
                   "high": { "thinking": { "type": "enabled", "budgetTokens": 24576 } },
@@ -431,6 +434,7 @@ describe("Integration Tests", () => {
               "GPT 5.2": {
                 "name": "GPT 5.2",
                 "limit": { "context": 400000, "output": 128000 },
+                "temperature": true,
                 "options": { "reasoningEffort": "none" },
                 "variants": { "low": { "reasoningEffort": "low" }, "high": { "reasoningEffort": "high" } },
                 "cost": { "input": 1.75, "output": 14, "cache_read": 0.175 },
@@ -470,6 +474,7 @@ describe("Integration Tests", () => {
           return mockSearchCounter.count === 1 ? "nexos-ai/Claude Opus 4.6" : "nexos-ai/Gemini 2.5 Flash";
         }),
       };
+      const mockSlider = jest.fn(async () => 0.2);
 
       const config = {
         agent: {
@@ -478,7 +483,7 @@ describe("Integration Tests", () => {
         },
       };
 
-      const result = await selectAgentModels(config, ["Claude Opus 4.6", "Gemini 2.5 Flash"], "nexos-ai", mockPrompts);
+      const result = await selectAgentModels(config, ["Claude Opus 4.6", "Gemini 2.5 Flash"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(result).toBe(true);
       expect(config.agent.build.model).toBe("nexos-ai/Claude Opus 4.6");
@@ -490,9 +495,10 @@ describe("Integration Tests", () => {
         checkbox: jest.fn(async () => ["build"]),
         search: jest.fn(async () => "nexos-ai/GPT 5"),
       };
+      const mockSlider = jest.fn(async () => 0.2);
 
       const config = {};
-      const result = await selectAgentModels(config, ["GPT 5"], "nexos-ai", mockPrompts);
+      const result = await selectAgentModels(config, ["GPT 5"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(result).toBe(true);
       expect(config.agent.build.model).toBe("nexos-ai/GPT 5");
@@ -503,9 +509,10 @@ describe("Integration Tests", () => {
         checkbox: jest.fn(),
         search: jest.fn(async () => "nexos-ai/Claude Opus 4.5"),
       };
+      const mockSlider = jest.fn(async () => 0.2);
 
       const config = { agent: {} };
-      const result = await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts);
+      const result = await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(result).toBe(true);
       expect(mockPrompts.checkbox).not.toHaveBeenCalled();
@@ -521,9 +528,10 @@ describe("Integration Tests", () => {
         checkbox: jest.fn(),
         search: jest.fn(async () => "nexos-ai/Claude Sonnet 4.5"),
       };
+      const mockSlider = jest.fn(async () => 0.3);
 
       const config = { agent: {} };
-      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts);
+      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(config.agent.plan.permission).toBeDefined();
       expect(config.agent.plan.permission.edit).toBe("deny");
@@ -537,6 +545,7 @@ describe("Integration Tests", () => {
         checkbox: jest.fn(async () => ["plan"]),
         search: jest.fn(async () => "nexos-ai/Claude Sonnet 4.5"),
       };
+      const mockSlider = jest.fn(async () => 0.3);
 
       const config = {
         agent: {
@@ -547,7 +556,7 @@ describe("Integration Tests", () => {
           },
         },
       };
-      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts);
+      await selectAgentModels(config, ["Claude Sonnet 4.5"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(config.agent.plan.permission.edit).toBe("allow");
       expect(config.agent.plan.permission.bash).toBe("deny");
@@ -562,13 +571,14 @@ describe("Integration Tests", () => {
           return choices[0].value;
         }),
       };
+      const mockSlider = jest.fn(async () => 0.2);
 
       const config = {
         agent: {
           build: { model: "other-provider/Custom Model" },
         },
       };
-      await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts);
+      await selectAgentModels(config, ["Claude Opus 4.5"], "nexos-ai", mockPrompts, mockSlider);
 
       expect(mockPrompts.search).toHaveBeenCalled();
       const searchCall = mockPrompts.search.mock.calls[0][0];

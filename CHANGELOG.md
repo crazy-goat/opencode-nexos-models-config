@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.17.0] - 2026-03-05
+
+### Added
+
+- **New agent**: `creative` — for brainstorming and innovative solutions
+  - Default temperature: `0.7`
+  - No special permissions (standard agent)
+- **Interactive temperature slider** in `--select-agents` mode
+  - Single-line horizontal slider with visual bar
+  - Navigation: ← → arrows to adjust, Enter to confirm
+  - Range: 0.0 (Deterministic) to 1.0 (Creative) with 0.1 step
+  - Shows current value and labels on both ends
+- **`temperature: true`** flag added to all model configurations
+  - Required by nexos.ai provider to pass temperature from agent config
+  - Applied automatically to every model in generated config
+
+### Changed
+
+- `selectAgentModels()` function now accepts optional `sliderFn` parameter for testing
+
 ## [1.16.2] - 2026-03-05
 
 ### Added
