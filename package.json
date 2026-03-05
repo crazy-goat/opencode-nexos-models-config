@@ -1,6 +1,6 @@
 {
   "name": "opencode-nexos-models-config",
-  "version": "1.16.1",
+  "version": "1.16.2",
   "description": "List available models on nexos.ai",
   "type": "module",
   "bin": "./index.mjs",

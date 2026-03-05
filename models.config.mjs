@@ -54,6 +54,10 @@ export const SUPPORTED_MODELS = {
     },
     options: { reasoningEffort: "none" },
   },
+  "GPT 5.3 Instant": {
+    limit: { context: 400000, output: 128000 },
+    cost: { input: 1.75, output: 14.0, cache_read: 0.175 },
+  },
   "GPT 5.3 Codex": {
     limit: { context: 400000, output: 128000 },
     cost: { input: 1.75, output: 14.0, cache_read: 0.175 },

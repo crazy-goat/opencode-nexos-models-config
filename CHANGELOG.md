@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.2] - 2026-03-05
+
+### Added
+
+- Model configuration for **GPT 5.3 Instant**
+  - Context limit: 400k tokens
+  - Output limit: 128k tokens
+  - Pricing: $1.75/M input tokens, $14.0/M output tokens, $0.175/M cache read tokens
+
 ## [1.16.1] - 2026-02-27
 
 ### Added
