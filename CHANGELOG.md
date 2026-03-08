@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.17.1] - 2026-03-08
+
+### Added
+
+- Model configuration for **GPT 5.4**
+  - Context limit: 1,050,000 tokens
+  - Output limit: 128,000 tokens
+  - Pricing: $2.5/M input tokens, $15.0/M output tokens, $0.25/M cache read tokens
+  - Variants: low, high
+
 ## [1.17.0] - 2026-03-05
 
 ### Added

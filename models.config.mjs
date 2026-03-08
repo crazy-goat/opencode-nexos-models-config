@@ -67,7 +67,16 @@ export const SUPPORTED_MODELS = {
     },
     options: { reasoningEffort: "none" },
   },
-  
+  "GPT 5.4": {
+    limit: { context: 1050000, output: 128000 },
+    cost: { input: 2.5, output: 15.0, cache_read: 0.25 },
+    variants: {
+      low: { reasoningEffort: "low" },
+      high: { reasoningEffort: "high" },
+    },
+    options: { reasoningEffort: "none" },
+  },
+
   // Google Gemini models
   "Gemini 2.5 Pro": {
     limit: { context: 1048576, output: 65536 },

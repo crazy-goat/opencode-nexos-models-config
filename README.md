@@ -203,6 +203,7 @@ When using `--supported-models` flag, only these curated models are included:
 | **Claude Opus 4.5** | Anthropic | 200k | 64k | low, high |
 | **Claude Opus 4.6** | Anthropic | 200k | 128k | low, high |
 | **Claude Sonnet 4.5** | Anthropic | 200k | 64k | low, high |
+| **GPT 5.4** | OpenAI | 1,050k | 128k | low, high |
 | **GPT 5.2** | OpenAI | 400k | 128k | low, high |
 | **GPT 5** | OpenAI | 400k | 128k | low, high |
 | **Gemini 2.5 Pro** | Google | 1M | 65k | low, high |
