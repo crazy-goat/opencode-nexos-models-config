@@ -5,7 +5,7 @@ import {
   configureCustomCosts,
   parseSupportedModelsFlag,
 } from "../index.mjs";
-import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, isModelSupported, SUPPORTED_MODELS, DEFAULT_FALLBACK_COSTS } from "../models.config.mjs";
+import { isSkippedModel, clone, getModelConfig, getModelLimit, getModelCost, getModelVariants, getModelOptions, getModelModalities, isModelSupported, SUPPORTED_MODELS, DEFAULT_FALLBACK_COSTS } from "../models.config.mjs";
 
 describe("Helper Functions", () => {
   describe("clone", () => {
@@ -193,6 +193,33 @@ describe("Helper Functions", () => {
       test("should return undefined for models without specific options", () => {
         const options = getModelOptions("Kimi K2.5");
         expect(options).toBeUndefined();
+      });
+    });
+
+    describe("getModelModalities", () => {
+      test("should return vision modalities for supported models", () => {
+        const modalities = getModelModalities("Claude Opus 4.5");
+        expect(modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+      });
+
+      test("should return vision modalities for GPT models", () => {
+        const modalities = getModelModalities("GPT 5.2");
+        expect(modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+      });
+
+      test("should return vision modalities for Gemini models", () => {
+        const modalities = getModelModalities("Gemini 2.5 Pro");
+        expect(modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+      });
+
+      test("should return vision modalities for Kimi models", () => {
+        const modalities = getModelModalities("Kimi K2.5");
+        expect(modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+      });
+
+      test("should return fallback text-only modalities for unknown models", () => {
+        const modalities = getModelModalities("Unknown Model");
+        expect(modalities).toEqual({ input: ["text"], output: ["text"] });
       });
     });
 

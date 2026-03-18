@@ -3,6 +3,7 @@
 export const SUPPORTED_MODELS = {
   // Anthropic Claude models - all share the same variants
   "Claude Opus 4.5": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 200000, output: 64000 },
     cost: { input: 5.5, output: 27.5, cache_read: 0.55, cache_write: 6.75 },
     variants: {
@@ -11,6 +12,7 @@ export const SUPPORTED_MODELS = {
     },
   },
   "Claude Opus 4.6": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 200000, output: 128000 },
     cost: { input: 5.5, output: 27.5, cache_read: 0.55, cache_write: 6.75 },
     variants: {
@@ -19,6 +21,7 @@ export const SUPPORTED_MODELS = {
     },
   },
   "Claude Sonnet 4.5": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 200000, output: 64000 },
     cost: { input: 3.3, output: 16.5, cache_read: 0.33, cache_write: 4.13 },
     variants: {
@@ -27,6 +30,7 @@ export const SUPPORTED_MODELS = {
     },
   },
   "Claude Sonnet 4.6": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 200000, output: 64000 },
     cost: { input: 3.3, output: 16.5, cache_read: 0.33, cache_write: 4.13 },
     variants: {
@@ -37,6 +41,7 @@ export const SUPPORTED_MODELS = {
   
   // OpenAI GPT models with reasoning
   "GPT 5.2": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 400000, output: 128000 },
     cost: { input: 1.75, output: 14.0, cache_read: 0.175 },
     variants: {
@@ -46,6 +51,7 @@ export const SUPPORTED_MODELS = {
     options: { reasoningEffort: "none" },
   },
   "GPT 5": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 400000, output: 128000 },
     cost: { input: 1.25, output: 10.0, cache_read: 0.125 },
     variants: {
@@ -55,10 +61,12 @@ export const SUPPORTED_MODELS = {
     options: { reasoningEffort: "none" },
   },
   "GPT 5.3 Instant": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 400000, output: 128000 },
     cost: { input: 1.75, output: 14.0, cache_read: 0.175 },
   },
   "GPT 5.3 Codex": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 400000, output: 128000 },
     cost: { input: 1.75, output: 14.0, cache_read: 0.175 },
     variants: {
@@ -68,6 +76,7 @@ export const SUPPORTED_MODELS = {
     options: { reasoningEffort: "none" },
   },
   "GPT 5.4": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 1050000, output: 128000 },
     cost: { input: 2.5, output: 15.0, cache_read: 0.25 },
     variants: {
@@ -79,6 +88,7 @@ export const SUPPORTED_MODELS = {
 
   // Google Gemini models
   "Gemini 2.5 Pro": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 1048576, output: 65536 },
     cost: { input: 1.25, output: 10.0, cache_read: 0.125 },
     variants: {
@@ -87,6 +97,7 @@ export const SUPPORTED_MODELS = {
     },
   },
   "Gemini 2.5 Flash": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 1048576, output: 65536 },
     cost: { input: 0.3, output: 2.5, cache_read: 0.03 },
     variants: {
@@ -97,6 +108,7 @@ export const SUPPORTED_MODELS = {
   
   // Moonshot AI Kimi models
   "Kimi K2.5": {
+    modalities: { input: ["text", "image"], output: ["text"] },
     limit: { context: 256000, output: 64000 },
     cost: { input: 0.6, output: 3.0, cache_read: 0.1 },
   },
@@ -170,6 +182,15 @@ export function getModelOptions(displayName) {
     return clone(config.options);
   }
   return undefined;
+}
+
+export function getModelModalities(displayName) {
+  const config = getModelConfig(displayName);
+  if (config?.modalities) {
+    return clone(config.modalities);
+  }
+  // Fallback: text only
+  return { input: ["text"], output: ["text"] };
 }
 
 export function isSkippedModel(displayName) {

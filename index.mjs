@@ -12,6 +12,7 @@ import {
   isSkippedModel,
   getModelLimit,
   getModelCost,
+  getModelModalities,
   isModelSupported,
 } from "./models.config.mjs";
 
@@ -471,6 +472,7 @@ export function processModels(modelsList, existingCosts, supportedModelsOnly) {
     const variants = getModelVariants(displayName);
     const options = getModelOptions(displayName);
     const cost = getModelCost(displayName, existingCosts);
+    const modalities = getModelModalities(displayName);
 
     if (supportedModelsOnly) {
       const isSupported = isModelSupported(displayName);
@@ -482,6 +484,7 @@ export function processModels(modelsList, existingCosts, supportedModelsOnly) {
 
     models[displayName] = {
       name: displayName,
+      modalities,
       limit,
       temperature: true,
       ...(options ? { options } : {}),

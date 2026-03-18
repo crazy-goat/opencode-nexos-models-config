@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.18.0] - 2026-03-18
+
+### Added
+
+- **`modalities`** field added to all model configurations
+  - All supported models now include `modalities: { input: ["text", "image"], output: ["text"] }`
+  - Required by opencode to send image content to vision-capable models
+  - Without this field, opencode strips image content before sending to API
+- **`getModelModalities()`** function in `models.config.mjs`
+  - Returns modalities for a given model name
+  - Fallback to `{ input: ["text"], output: ["text"] }` for unknown models
+- **Tests for modalities**
+  - Unit tests for `getModelModalities()` covering all model types
+  - Integration tests updated to verify modalities in generated config
+
+### Changed
+
+- `processModels()` now includes `modalities` in generated model configuration
+- Models in config are now sorted alphabetically by name
+
 ## [1.17.1] - 2026-03-08
 
 ### Added

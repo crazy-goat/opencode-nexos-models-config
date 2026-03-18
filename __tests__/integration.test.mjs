@@ -342,6 +342,7 @@ describe("Integration Tests", () => {
             "models": {
               "GPT 5.2": {
                 "name": "GPT 5.2",
+                "modalities": { "input": ["text", "image"], "output": ["text"] },
                 "limit": { "context": 400000, "output": 128000 },
                 "temperature": true,
                 "options": { "reasoningEffort": "none" },
@@ -413,6 +414,7 @@ describe("Integration Tests", () => {
             "models": {
               "Claude Sonnet 4.5": {
                 "name": "Claude Sonnet 4.5",
+                "modalities": { "input": ["text", "image"], "output": ["text"] },
                 "limit": { "context": 200000, "output": 64000 },
                 "temperature": true,
                 "variants": {
@@ -423,6 +425,7 @@ describe("Integration Tests", () => {
               },
               "Gemini 2.5 Flash": {
                 "name": "Gemini 2.5 Flash",
+                "modalities": { "input": ["text", "image"], "output": ["text"] },
                 "limit": { "context": 1048576, "output": 65536 },
                 "temperature": true,
                 "variants": {
@@ -433,6 +436,7 @@ describe("Integration Tests", () => {
               },
               "GPT 5.2": {
                 "name": "GPT 5.2",
+                "modalities": { "input": ["text", "image"], "output": ["text"] },
                 "limit": { "context": 400000, "output": 128000 },
                 "temperature": true,
                 "options": { "reasoningEffort": "none" },
