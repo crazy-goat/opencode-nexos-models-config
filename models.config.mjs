@@ -112,6 +112,13 @@ export const SUPPORTED_MODELS = {
     limit: { context: 256000, output: 64000 },
     cost: { input: 0.6, output: 3.0, cache_read: 0.1 },
   },
+  
+  // Zhipu AI GLM models
+  "GLM 5": {
+    modalities: { input: ["text"], output: ["text"] },
+    limit: { context: 202800, output: 202800 },
+    cost: { input: 1.0, output: 3.2, cache_read: 0.2 },
+  },
 };
 
 // Default fallback costs for models not in SUPPORTED_MODELS

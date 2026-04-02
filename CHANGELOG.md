@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.19.0] - 2026-04-02
+
+### Added
+
+- Model configuration for **GLM 5** (Zhipu AI via Fireworks)
+  - Context limit: 202,800 tokens
+  - Output limit: 202,800 tokens
+  - Pricing: $1.0/M input tokens, $3.2/M output tokens, $0.2/M cache read
+  - Text-only (no vision support)
+
 ## [1.18.0] - 2026-03-18
 
 ### Added

@@ -209,6 +209,7 @@ When using `--supported-models` flag, only these curated models are included:
 | **Gemini 2.5 Pro** | Google | 1M | 65k | low, high |
 | **Gemini 2.5 Flash** | Google | 1M | 65k | low, high |
 | **Kimi K2.5** | Moonshot AI | 256k | 64k | - |
+| **GLM 5** | Zhipu AI | 202k | 202k | - |
 
 All models come with pre-configured context limits, output limits, and pricing information.
 
